@@ -1,0 +1,3 @@
+-- Gigormoc Initial Migration Shell
+-- Backend: 100% Supabase. RLS enabled on every public table.
+-- Milestone 0: Migrations folder initialized.
