@@ -15,7 +15,7 @@ interface AvatarProps {
 }
 
 /** Avatar component showing uploaded photo if present, otherwise initials (never stock faces). */
-export const Avatar: React.FC<AvatarProps> = ({
+export const Avatar: React.FC<AvatarProps> = React.memo(function Avatar({
   name,
   imageUri,
   uri,
@@ -24,7 +24,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   onHero = false,
   onPress,
   editable = false,
-}) => {
+}) {
   const theme = useAppTheme();
   const resolvedUri = imageUri ?? uri ?? avatarPath;
   const [imgError, setImgError] = useState(false);
@@ -44,7 +44,6 @@ export const Avatar: React.FC<AvatarProps> = ({
     <View style={{ width: size, height: size, position: 'relative' }}>
       {resolvedUri && resolvedUri.trim() !== '' && !imgError ? (
         <Image
-          key={resolvedUri}
           source={{ uri: resolvedUri }}
           onError={() => setImgError(true)}
           style={{
@@ -113,7 +112,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   }
 
   return content;
-};
+});
 
 const styles = StyleSheet.create({
   cameraBadge: {

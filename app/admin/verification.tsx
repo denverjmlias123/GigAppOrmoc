@@ -102,6 +102,9 @@ export default function AdminVerificationScreen() {
 
   const filteredItems = queue.filter((item) => {
     if (filter === 'all') return true;
+    if (filter === 'ai_flagged') {
+      return item.verification_status === 'ai_flagged' || (item.verification_status as any) === 'pending';
+    }
     return item.verification_status === filter;
   });
 
@@ -157,7 +160,7 @@ export default function AdminVerificationScreen() {
       {/* KPI Stats */}
       <View style={styles.kpiRow}>
         <StatBox
-          value={queue.filter((i) => i.verification_status === 'ai_flagged').length}
+          value={queue.filter((i) => i.verification_status === 'ai_flagged' || (i.verification_status as any) === 'pending').length}
           label="AI Flagged (Pending)"
           tone="warning"
           icon="alert-circle-outline"

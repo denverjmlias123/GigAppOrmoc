@@ -16,7 +16,7 @@ interface ChipProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export const Chip: React.FC<ChipProps> = ({
+export const Chip: React.FC<ChipProps> = React.memo(function Chip({
   label,
   selected = false,
   disabled = false,
@@ -27,7 +27,7 @@ export const Chip: React.FC<ChipProps> = ({
   size = 'md',
   tone = 'primary',
   style,
-}) => {
+}) {
   const theme = useAppTheme();
   const c = theme.colors;
   const activeColor =
@@ -129,7 +129,7 @@ export const Chip: React.FC<ChipProps> = ({
       ) : null}
     </Pressable>
   );
-};
+});
 
 interface SegmentedOption<T extends string = string> {
   value: T;

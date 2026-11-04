@@ -23,7 +23,9 @@ export interface Profile {
   headline: string;
   bio: string | null;
   avatar_path: string | null;
+  avatar_url?: string | null;
   area: string | null;
+  area_barangay?: string | null;
   preferred_contact: string;
   languages: string[];
   work_types: string[];
@@ -35,25 +37,40 @@ export interface Profile {
   about_hiring: string;
   active_mode: 'find_work' | 'hire' | null;
   mode_changed_at: string | null;
+  last_mode_switch_at?: string | null;
   onboarding_complete: boolean;
+  onboarding_completed?: boolean;
+  onboarding_step?: number;
   freelancer_rating_avg: number;
   freelancer_rating_count: number;
+  freelancer_review_count?: number;
   client_rating_avg: number;
   client_rating_count: number;
+  client_review_count?: number;
   freelancer_completed_gigs: number;
   client_completed_gigs: number;
   status: 'active' | 'suspended' | 'deactivated' | 'deleted';
+  is_active?: boolean;
+  is_admin_locked?: boolean;
   must_change_password: boolean;
+  email?: string;
+  username?: string;
+  date_of_birth?: string;
+  phone?: string | null;
   email_verified?: boolean;
   is_legit_verified?: boolean;
-  verification_status?: 'unverified' | 'ai_flagged' | 'approved' | 'rejected';
+  verification_status?: 'unverified' | 'ai_flagged' | 'approved' | 'rejected' | 'unsubmitted' | 'pending' | 'update_requested';
+  legitimacy_score?: number;
   ai_legitimacy_score?: number;
   ai_legitimacy_report?: any;
   verified_at?: string | null;
   verified_by?: string | null;
+  hiring_interests?: string[] | null;
   created_at: string;
   updated_at?: string;
 }
+
+export type UserProfile = Profile;
 
 const COMMON_EMAIL_DOMAIN_TYPOS = new Set([
   'gmial.com',
@@ -392,34 +409,77 @@ export const authService = {
     }
   },
 
-  async verifySignupOtp(email: string, token: string) {
-    const normalizedEmail = normalizeEmail(email);
+  async verifySignupOtp(arg1: string, arg2?: string, arg3?: string): Promise<any> {
+    let email = '';
+    let token = '';
+    let userId = arg3 || '';
+
+    if (arg1 && arg1.includes('@')) {
+      email = arg1;
+      token = arg2 || '';
+    } else {
+      token = arg1 || '';
+      email = arg2 || '';
+    }
+
     const cleanToken = token.replace(/\D/g, '').slice(0, 10);
     if (!cleanToken || cleanToken.length < 6) {
       const err: any = new Error(strings.auth.otpCodeLength);
       err.code = 'INVALID_OTP';
       throw err;
     }
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: normalizedEmail,
-      token: cleanToken,
-      type: 'signup',
-    });
-    if (error) {
-      throw error;
+
+    if (userId || email) {
+      try {
+        const ok = await this.verifySignupOtpByUser(userId, cleanToken, email);
+        if (ok) return { user: { id: userId, email } };
+      } catch {
+        // Fall back to standard auth.verifyOtp
+      }
     }
-    return data;
+
+    const normalizedEmail = email ? normalizeEmail(email) : '';
+    if (normalizedEmail) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: normalizedEmail,
+        token: cleanToken,
+        type: 'signup',
+      });
+      if (error) {
+        throw error;
+      }
+      return data;
+    }
+
+    throw new Error('Email or user ID required to verify OTP.');
   },
 
   async createSignupOtp(userId?: string, email?: string): Promise<string> {
+    const normEmail = email ? normalizeEmail(email) : '';
     const { data, error } = await supabase.rpc('create_signup_otp', {
       p_user_id: userId || null,
-      p_email: email ? normalizeEmail(email) : null,
+      p_email: normEmail || null,
     });
     if (error) {
       throw error;
     }
-    return String(data);
+    const otpCode = String(data);
+    // Mirror into project_inbox_messages so demo ProjectMailInbox can display it immediately
+    if (otpCode && (userId || normEmail)) {
+      try {
+        await supabase.from('project_inbox_messages').insert({
+          user_id: userId || null,
+          recipient_email: normEmail || '',
+          purpose: 'signup_verification',
+          subject: 'GigOrmoc Demo Email Verification OTP',
+          otp_code_display: otpCode,
+          expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+        });
+      } catch {
+        // Non-blocking inbox notification fallback
+      }
+    }
+    return otpCode;
   },
 
   async verifySignupOtpByUser(userId?: string, otp?: string, email?: string): Promise<boolean> {
@@ -634,19 +694,45 @@ export const authService = {
         ? 'find_work'
         : null;
 
+    let email = row.email || '';
+    if (!email) {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session?.user?.id === userId) {
+          email = sessionData.session.user.email || '';
+        }
+      } catch {}
+    }
+
     const normalized: Profile = {
       ...row,
       active_mode,
-      onboarding_complete: row.onboarding_complete ?? row.onboarding_completed ?? false,
-      area: row.area ?? row.area_barangay ?? null,
-      avatar_path: row.avatar_path ?? row.avatar_url ?? null,
-      freelancer_rating_count: row.freelancer_rating_count ?? 0,
-      client_rating_count: row.client_rating_count ?? 0,
+      email,
+      username: row.username || (email ? email.split('@')[0] : 'user'),
+      onboarding_complete: Boolean(row.onboarding_complete || row.onboarding_completed),
+      onboarding_completed: Boolean(row.onboarding_completed || row.onboarding_complete),
+      onboarding_step: row.onboarding_step ?? 1,
+      area: row.area || row.area_barangay || null,
+      area_barangay: row.area_barangay || row.area || null,
+      avatar_path: row.avatar_path || row.avatar_url || null,
+      avatar_url: row.avatar_url || row.avatar_path || null,
+      freelancer_rating_count: row.freelancer_rating_count ?? row.freelancer_review_count ?? 0,
+      client_rating_count: row.client_rating_count ?? row.client_review_count ?? 0,
+      freelancer_review_count: row.freelancer_review_count ?? row.freelancer_rating_count ?? 0,
+      client_review_count: row.client_review_count ?? row.client_rating_count ?? 0,
       freelancer_completed_gigs: row.freelancer_completed_gigs ?? 0,
       client_completed_gigs: row.client_completed_gigs ?? 0,
       status: row.status ?? (row.is_active === false ? 'suspended' : 'active'),
+      is_active: row.is_active ?? (row.status === 'active'),
+      is_admin_locked: row.is_admin_locked ?? false,
       must_change_password: row.must_change_password ?? false,
       email_verified: row.email_verified ?? false,
+      verification_status: row.verification_status ?? 'unverified',
+      legitimacy_score: row.legitimacy_score ?? row.ai_legitimacy_score ?? 0,
+      ai_legitimacy_score: row.ai_legitimacy_score ?? row.legitimacy_score ?? 0,
+      ai_legitimacy_report: row.ai_legitimacy_report ?? null,
+      verified_at: row.verified_at ?? null,
+      verified_by: row.verified_by ?? null,
       is_legit_verified: row.is_legit_verified ?? (row.verification_status === 'approved'),
     };
 
@@ -654,21 +740,39 @@ export const authService = {
   },
 
   async chooseInitialMode(targetMode: 'find_work' | 'hire'): Promise<void> {
-    const { error } = await supabase.rpc('choose_initial_mode', {
-      target_mode: targetMode,
-      p_mode: targetMode,
-    });
+    try {
+      const { data, error } = await supabase.rpc('choose_initial_mode', {
+        target_mode: targetMode,
+        p_mode: targetMode,
+      });
 
-    if (error) {
-      // Fallback to direct profile update if RPC not present
-      if (error.code === 'PGRST202' || error.message?.includes('not find')) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from('profiles').update({ active_mode: targetMode }).eq('id', user.id);
-          return;
+      if (!error) {
+        if (data && typeof data === 'object' && (data as any).ok === false) {
+          throw new Error((data as any).message || 'Failed to choose initial mode.');
         }
+        return;
       }
-      throw error;
+    } catch (rpcErr: any) {
+      if (rpcErr?.message?.includes('already been chosen')) {
+        return;
+      }
+      // Fall through to direct profile update fallback
+    }
+
+    // Resilient fallback: direct profile update
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({
+        active_mode: targetMode,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+
+    if (updateErr) {
+      throw updateErr;
     }
   },
 
@@ -677,6 +781,22 @@ export const authService = {
     updates: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_path' | 'area' | 'onboarding_complete'>>
   ) {
     const payload: any = { ...updates };
+    if ('onboarding_complete' in payload || 'onboarding_completed' in payload) {
+      const val = Boolean(payload.onboarding_complete || payload.onboarding_completed);
+      payload.onboarding_complete = val;
+      payload.onboarding_completed = val;
+    }
+    if ('avatar_path' in payload || 'avatar_url' in payload) {
+      const val = payload.avatar_path || payload.avatar_url || null;
+      payload.avatar_path = val;
+      payload.avatar_url = val;
+    }
+    if ('area' in payload || 'area_barangay' in payload) {
+      const val = payload.area || payload.area_barangay || null;
+      payload.area = val;
+      payload.area_barangay = val;
+    }
+
     let { data, error } = await supabase
       .from('profiles')
       .update(payload)
@@ -684,20 +804,14 @@ export const authService = {
       .select()
       .maybeSingle();
 
-    if (error && error.message?.includes('does not exist')) {
+    if (
+      error &&
+      (error.code === 'PGRST204' ||
+        error.message?.includes('schema cache') ||
+        error.message?.includes('does not exist') ||
+        error.message?.includes('not find'))
+    ) {
       const altPayload: any = { ...updates };
-      if ('onboarding_complete' in altPayload) {
-        altPayload.onboarding_completed = altPayload.onboarding_complete;
-        delete altPayload.onboarding_complete;
-      }
-      if ('area' in altPayload) {
-        altPayload.area_barangay = altPayload.area;
-        delete altPayload.area;
-      }
-      if ('avatar_path' in altPayload) {
-        altPayload.avatar_url = altPayload.avatar_path;
-        delete altPayload.avatar_path;
-      }
       const retry = await supabase
         .from('profiles')
         .update(altPayload)
@@ -715,13 +829,25 @@ export const authService = {
     return (data || updates) as Profile;
   },
 
-  async completeOnboarding(): Promise<void> {
-    const { error } = await supabase.rpc('complete_onboarding');
+  async completeOnboarding(mode?: string): Promise<void> {
+    let { error } = await supabase.rpc('complete_onboarding', {
+      p_mode: mode || null,
+    });
+    if (error && (error.code === 'PGRST202' || error.message?.includes('not find'))) {
+      const stepRes = await supabase.rpc('rpc_complete_onboarding_step', {
+        p_step: 3,
+        p_payload: mode ? { active_mode: mode } : {},
+      });
+      error = stepRes.error;
+    }
     if (error) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await this.updateProfile(user.id, { onboarding_complete: true } as any);
+          await this.updateProfile(user.id, {
+            onboarding_complete: true,
+            ...(mode ? { active_mode: mode } : {}),
+          } as any);
           return;
         }
       } catch {

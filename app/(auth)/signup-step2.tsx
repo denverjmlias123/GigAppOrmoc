@@ -104,7 +104,7 @@ export default function SignUpStep2Screen() {
       if (res?.user?.id) {
         let otpCode = '';
         try {
-          otpCode = await authService.createSignupOtp(res.user.id);
+          otpCode = await authService.createSignupOtp(res.user.id, normalizedEmail);
         } catch {
           // If RPC unavailable, empty code allows user to request resend
         }

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -73,10 +73,15 @@ export default function ActivityScreen() {
   const [myAgreements, setMyAgreements] = useState<AgreementItem[]>([]);
   const [agreementLoopMap, setAgreementLoopMap] = useState<Record<string, LoopStageState>>({});
 
-  const loadData = useCallback(async () => {
+  const hasLoadedRef = useRef(false);
+
+  const loadData = useCallback(async (isRefresh = false) => {
     if (!user) {
       setLoading(false);
       return;
+    }
+    if (!isRefresh && !hasLoadedRef.current) {
+      setLoading(true);
     }
     setLoadError(null);
     try {
@@ -156,6 +161,7 @@ export default function ActivityScreen() {
         })
       );
       setAgreementLoopMap(loopMap);
+      hasLoadedRef.current = true;
     } catch (err) {
       setLoadError(mapSqlErrorToFriendlyMessage(err, 'Failed to load activity data.'));
     } finally {

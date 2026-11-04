@@ -7,6 +7,14 @@ let receiptUploadSeq = 0;
 export type PaymentMethod = 'gcash' | 'maya' | 'bank_transfer' | 'cash' | 'other';
 type PaymentStatus = 'reported_sent' | 'confirmed_received' | 'disputed';
 
+function normalizePaymentMethod(method: string): 'GCash' | 'Maya' | 'PayPal' | 'Cash' {
+  const m = (method || '').toLowerCase();
+  if (m === 'gcash') return 'GCash';
+  if (m === 'maya' || m === 'paymaya') return 'Maya';
+  if (m === 'paypal') return 'PayPal';
+  return 'Cash';
+}
+
 export interface PaymentItem {
   id: string;
   agreement_id: string;
@@ -14,9 +22,11 @@ export interface PaymentItem {
   payer_id: string;
   payee_id: string;
   amount: number; // in centavos
+  amount_centavos?: number;
   payment_method: PaymentMethod;
   reference_number: string;
   receipt_path: string | null;
+  proof_url?: string | null;
   notes: string;
   status: PaymentStatus;
   dispute_reason: string | null;
@@ -48,40 +58,140 @@ interface ReportPaymentParams {
 
 export const paymentsService = {
   async getAgreementPayments(agreementId: string): Promise<PaymentItem[]> {
-    const { data, error } = await supabase
-      .from('payments')
-      .select(`
-        id,
-        agreement_id,
-        milestone_id,
-        payer_id,
-        payee_id,
-        amount,
-        payment_method,
-        reference_number,
-        receipt_path,
-        notes,
-        status,
-        dispute_reason,
-        reported_at,
-        confirmed_at,
-        disputed_at,
-        created_at,
-        updated_at,
-        payer:profiles!payments_payer_id_fkey(display_name, avatar_path),
-        payee:profiles!payments_payee_id_fkey(display_name, avatar_path)
-      `)
-      .eq('agreement_id', agreementId)
-      .order('created_at', { ascending: false });
+    // 1. Primary: query external_payments
+    try {
+      const { data, error } = await supabase
+        .from('external_payments')
+        .select(`
+          id,
+          agreement_id,
+          milestone_id,
+          reported_by_client_id,
+          amount_centavos,
+          payment_method,
+          reference_number,
+          proof_url,
+          status,
+          confirmed_at,
+          created_at,
+          agreement:agreements(
+            client_id,
+            freelancer_id,
+            client:profiles!agreements_client_id_fkey(display_name, avatar_path),
+            freelancer:profiles!agreements_freelancer_id_fkey(display_name, avatar_path)
+          )
+        `)
+        .eq('agreement_id', agreementId)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as any[];
+      if (!error && data) {
+        return (data || []).map((row: any) => ({
+          id: row.id,
+          agreement_id: row.agreement_id,
+          milestone_id: row.milestone_id,
+          payer_id: row.reported_by_client_id || row.agreement?.client_id || '',
+          payee_id: row.agreement?.freelancer_id || '',
+          amount: Number(row.amount_centavos || 0),
+          amount_centavos: Number(row.amount_centavos || 0),
+          payment_method: (row.payment_method || 'gcash').toLowerCase() as PaymentMethod,
+          reference_number: row.reference_number || '',
+          receipt_path: row.proof_url || null,
+          proof_url: row.proof_url || null,
+          notes: '',
+          status: row.status,
+          dispute_reason: null,
+          reported_at: row.created_at,
+          confirmed_at: row.confirmed_at || null,
+          disputed_at: null,
+          created_at: row.created_at,
+          updated_at: row.created_at,
+          payer: row.agreement?.client
+            ? {
+                display_name: row.agreement.client.display_name,
+                avatar_path: row.agreement.client.avatar_path,
+              }
+            : undefined,
+          payee: row.agreement?.freelancer
+            ? {
+                display_name: row.agreement.freelancer.display_name,
+                avatar_path: row.agreement.freelancer.avatar_path,
+              }
+            : undefined,
+        }));
+      }
+    } catch (epErr) {
+      console.warn('Query external_payments error:', epErr);
+    }
+
+    // 2. Fallback: query legacy payments table if it exists
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          id,
+          agreement_id,
+          milestone_id,
+          payer_id,
+          payee_id,
+          amount,
+          payment_method,
+          reference_number,
+          receipt_path,
+          notes,
+          status,
+          dispute_reason,
+          reported_at,
+          confirmed_at,
+          disputed_at,
+          created_at,
+          updated_at,
+          payer:profiles!payments_payer_id_fkey(display_name, avatar_path),
+          payee:profiles!payments_payee_id_fkey(display_name, avatar_path)
+        `)
+        .eq('agreement_id', agreementId)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        return (data || []) as any[];
+      }
+    } catch {}
+
+    return [];
   },
 
   async reportPayment(params: ReportPaymentParams): Promise<string> {
     return runOnce(
       `report_payment:${params.agreementId}:${params.milestoneId || 'all'}`,
       async (reqId) => {
+        const method = normalizePaymentMethod(params.paymentMethod);
+
+        // 1. Try rpc_report_external_payment first
+        try {
+          const { data, error } = await supabase.rpc('rpc_report_external_payment', {
+            p_agreement_id: params.agreementId,
+            p_milestone_id: params.milestoneId || null,
+            p_payment_method: method,
+            p_amount_centavos: params.amount,
+            p_reference_number: params.referenceNumber,
+            p_proof_url: params.receiptPath || null,
+          });
+
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Payment reporting rejected.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return String((data as any)?.payment_id || 'reported');
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Fallback to report_payment
         const baseArgs = {
           p_agreement_id: params.agreementId,
           p_milestone_id: params.milestoneId || null,
@@ -110,6 +220,27 @@ export const paymentsService = {
     return runOnce(
       `confirm_payment:${paymentId}`,
       async (reqId) => {
+        // 1. Try rpc_confirm_external_payment first
+        try {
+          const { data, error } = await supabase.rpc('rpc_confirm_external_payment', {
+            p_payment_id: paymentId,
+          });
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Payment confirmation failed.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return;
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Fallback to confirm_payment
         const baseArgs = { p_payment_id: paymentId };
         let { error } = await supabase.rpc('confirm_payment', {
           ...baseArgs,
@@ -129,6 +260,28 @@ export const paymentsService = {
     return runOnce(
       `dispute_payment:${paymentId}`,
       async (reqId) => {
+        // 1. Try rpc_dispute_external_payment first
+        try {
+          const { data, error } = await supabase.rpc('rpc_dispute_external_payment', {
+            p_payment_id: paymentId,
+            p_reason: reason,
+          });
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Payment dispute failed.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return;
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Fallback to dispute_payment
         const baseArgs = {
           p_payment_id: paymentId,
           p_reason: reason,

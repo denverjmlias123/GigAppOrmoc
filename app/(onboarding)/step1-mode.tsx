@@ -111,6 +111,7 @@ export default function OnboardingStep1ModeScreen() {
       return;
     }
 
+    const isOnboarding = !profile?.onboarding_completed;
     const currentActive = normalizeMode(profile?.active_mode);
     const isSameMode = currentActive === selectedMode;
 
@@ -118,10 +119,15 @@ export default function OnboardingStep1ModeScreen() {
     setLoading(true);
     setError(null);
     try {
-      if (!currentActive) {
+      if (isOnboarding || !currentActive) {
         await authService.chooseInitialMode(selectedMode);
       } else if (!isSameMode) {
-        await applicationsService.switchMode(selectedMode);
+        try {
+          await applicationsService.switchMode(selectedMode);
+        } catch {
+          // In onboarding step 1, fallback to chooseInitialMode
+          await authService.chooseInitialMode(selectedMode);
+        }
       }
       await refreshProfile();
       router.push('/(onboarding)/step2-skills');
@@ -130,6 +136,13 @@ export default function OnboardingStep1ModeScreen() {
         await refreshProfile();
         router.push('/(onboarding)/step2-skills');
       } else {
+        try {
+          await authService.updateProfile(user.id, { active_mode: selectedMode } as any);
+          await refreshProfile();
+          router.push('/(onboarding)/step2-skills');
+          return;
+        } catch {}
+
         const appErr = toAppError(err);
         setError(appErr.message || 'Could not save initial mode.');
         triggerShake();
@@ -244,7 +257,7 @@ export default function OnboardingStep1ModeScreen() {
             />
           )}
 
-          {normalizeMode(profile?.active_mode) && (
+          {profile?.onboarding_completed && normalizeMode(profile?.active_mode) && (
             <AlertBox
               tone="info"
               title="Active Role"

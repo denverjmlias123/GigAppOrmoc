@@ -38,3 +38,6 @@ supabase/.temp/
 
 expo-env.d.ts
 # @end expo-cli
+testsprite_tests/tmp/
+testsprite_tests/tmp/config.json
+scratch/

@@ -84,6 +84,79 @@ export const gigsService = {
   },
 
   async getGigs(filter?: GetGigsFilter): Promise<GigSummary[]> {
+    // 1. Try modern database schema
+    try {
+      let query = supabase
+        .from('gigs')
+        .select(`
+          id,
+          client_id,
+          title,
+          category,
+          description,
+          budget_centavos,
+          budget_type,
+          location_barangay,
+          required_skills,
+          status,
+          created_at,
+          updated_at,
+          client:profiles!gigs_client_id_fkey(
+            id,
+            display_name,
+            avatar_url,
+            area_barangay,
+            legitimacy_score
+          )
+        `)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+
+      if (filter?.categoryId) {
+        query = query.eq('category', filter.categoryId);
+      }
+
+      if (filter?.workType) {
+        query = query.eq('budget_type', filter.workType);
+      }
+
+      if (filter?.searchQuery && filter.searchQuery.trim()) {
+        query = query.ilike('title', `%${filter.searchQuery.trim()}%`);
+      }
+
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user?.id) {
+        query = query.neq('client_id', authData.user.id);
+      }
+
+      const { data, error } = await query;
+      if (!error && data) {
+        return data.map((row: any) => ({
+          id: row.id,
+          title: row.title,
+          category_name: row.category || 'General',
+          price_min: Number(row.budget_centavos || 0),
+          price_max: Number(row.budget_centavos || 0),
+          work_type: row.budget_type || 'fixed',
+          area: row.location_barangay || 'Ormoc City',
+          application_deadline: row.created_at,
+          deadline: row.created_at,
+          status: row.status,
+          client: row.client
+            ? {
+                display_name: row.client.display_name,
+                avatar_path: row.client.avatar_url || null,
+                client_rating_avg: 5.0,
+                client_rating_count: 0,
+              }
+            : undefined,
+        }));
+      }
+    } catch (modernErr) {
+      console.warn('getGigs primary query warning:', modernErr);
+    }
+
+    // 2. Fallback to legacy query
     let query = supabase
       .from('gigs')
       .select(`
@@ -146,6 +219,81 @@ export const gigsService = {
   },
 
   async getGig(id: string): Promise<GigDetail | null> {
+    // 1. Try modern database schema
+    try {
+      const { data, error } = await supabase
+        .from('gigs')
+        .select(`
+          id,
+          client_id,
+          title,
+          category,
+          description,
+          budget_centavos,
+          budget_type,
+          location_barangay,
+          required_skills,
+          status,
+          created_at,
+          updated_at,
+          client:profiles!gigs_client_id_fkey(
+            id,
+            display_name,
+            avatar_url,
+            area_barangay,
+            bio,
+            legitimacy_score
+          )
+        `)
+        .eq('id', id)
+        .maybeSingle();
+
+      if (!error && data) {
+        const row = data as any;
+        return {
+          id: row.id,
+          client_id: row.client_id,
+          title: row.title,
+          description: row.description || '',
+          requirements: Array.isArray(row.required_skills) ? row.required_skills.join(', ') : '',
+          category_id: row.category || '',
+          secondary_category_ids: Array.isArray(row.required_skills) ? row.required_skills : [],
+          category_name: row.category || 'General',
+          price_min: Number(row.budget_centavos || 0),
+          price_max: Number(row.budget_centavos || 0),
+          work_type: row.budget_type || 'fixed',
+          area: row.location_barangay || 'Ormoc City',
+          application_deadline: row.created_at,
+          deadline: row.created_at,
+          status: row.status,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          client: row.client
+            ? {
+                id: row.client.id || row.client_id,
+                display_name: row.client.display_name || 'Client',
+                avatar_path: row.client.avatar_url || null,
+                area: row.client.area_barangay || null,
+                client_rating_avg: 5.0,
+                client_rating_count: 0,
+                client_completed_gigs: 0,
+              }
+            : {
+                id: row.client_id,
+                display_name: 'Client',
+                avatar_path: null,
+                area: null,
+                client_rating_avg: 5.0,
+                client_rating_count: 0,
+                client_completed_gigs: 0,
+              },
+        };
+      }
+    } catch (err) {
+      console.warn('getGig primary query warning:', err);
+    }
+
+    // 2. Fallback to legacy query
     const { data, error } = await supabase
       .from('gigs')
       .select(`
@@ -214,6 +362,46 @@ export const gigsService = {
 
   async getMyGigs(clientId: string): Promise<GigSummary[]> {
     const fetchRemote = async () => {
+      // 1. Try modern schema
+      try {
+        const { data, error } = await supabase
+          .from('gigs')
+          .select(`
+            id,
+            client_id,
+            title,
+            category,
+            description,
+            budget_centavos,
+            budget_type,
+            location_barangay,
+            required_skills,
+            status,
+            created_at,
+            updated_at
+          `)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          return data.map((row: any) => ({
+            id: row.id,
+            title: row.title,
+            category_name: row.category || 'General',
+            price_min: Number(row.budget_centavos || 0),
+            price_max: Number(row.budget_centavos || 0),
+            work_type: row.budget_type || 'fixed',
+            area: row.location_barangay || 'Ormoc City',
+            application_deadline: row.created_at,
+            deadline: row.created_at,
+            status: row.status,
+          }));
+        }
+      } catch (err) {
+        console.warn('getMyGigs primary query warning:', err);
+      }
+
+      // 2. Fallback to legacy query
       const { data, error } = await supabase
         .from('gigs')
         .select(`
@@ -268,10 +456,39 @@ export const gigsService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated.');
 
+        // 1. Try rpc_create_or_update_gig first (IAS 1 redesign)
+        try {
+          const { data, error } = await supabase.rpc('rpc_create_or_update_gig', {
+            p_gig_id: null,
+            p_title: params.title.trim(),
+            p_category: (params.category_name || params.category_id || 'General').trim(),
+            p_description: params.description.trim(),
+            p_budget_centavos: params.price_min || params.price_max || 10000,
+            p_budget_type: ((params as any).budget_type || 'fixed') as 'fixed' | 'hourly',
+            p_location_barangay: (params.area || 'Ormoc City').trim(),
+            p_required_skills: params.secondary_category_ids || [],
+            p_status: 'draft',
+          });
+
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Failed to post gig.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return { id: String((data as any)?.gig_id || 'created') };
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Try legacy create_draft_gig
         const isUuid = (val?: string | null) =>
           Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim()));
 
-        // Guard against non-UUID category_id (e.g. offline temporary id 'cat-1')
         if (params.category_id && !isUuid(params.category_id)) {
           if (!params.category_name) {
             params.category_name = params.category_id;
@@ -308,10 +525,38 @@ export const gigsService = {
     return runOnce(
       `update_gig:${gigId}`,
       async (reqId) => {
+        // 1. Try rpc_create_or_update_gig first
+        try {
+          const { data, error } = await supabase.rpc('rpc_create_or_update_gig', {
+            p_gig_id: gigId,
+            p_title: params.title.trim(),
+            p_category: (params.category_name || params.category_id || 'General').trim(),
+            p_description: params.description.trim(),
+            p_budget_centavos: params.price_min || params.price_max || 10000,
+            p_budget_type: ((params as any).budget_type || 'fixed') as 'fixed' | 'hourly',
+            p_location_barangay: (params.area || 'Ormoc City').trim(),
+            p_required_skills: params.secondary_category_ids || [],
+          });
+
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Failed to update gig.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return;
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Try legacy update_gig
         const isUuid = (val?: string | null) =>
           Boolean(val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim()));
 
-        // Guard against non-UUID category_id
         if (params.category_id && !isUuid(params.category_id)) {
           if (!params.category_name) {
             params.category_name = params.category_id;

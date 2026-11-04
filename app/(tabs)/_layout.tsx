@@ -369,7 +369,7 @@ export default function TabLayout() {
           >
             <Avatar
               name={profile?.display_name || user?.email || 'U'}
-              imageUri={profile?.avatar_path}
+              imageUri={profile?.avatar_path || profile?.avatar_url}
               size={38}
             />
             <View style={{ flex: 1 }}>

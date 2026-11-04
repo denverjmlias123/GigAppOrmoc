@@ -40,14 +40,44 @@ export interface DefineMilestoneParam {
 
 export const milestonesService = {
   async getAgreementMilestones(agreementId: string): Promise<MilestoneItem[]> {
-    const { data, error } = await supabase
-      .from('milestones')
-      .select('*')
-      .eq('agreement_id', agreementId)
-      .order('seq', { ascending: true });
+    let rawData: any[] = [];
+    try {
+      const { data, error } = await supabase
+        .from('milestones')
+        .select('*')
+        .eq('agreement_id', agreementId)
+        .order('sequence_order', { ascending: true });
 
-    if (error) throw error;
-    return (data || []) as MilestoneItem[];
+      if (!error && data) {
+        rawData = data;
+      } else {
+        const fallback = await supabase
+          .from('milestones')
+          .select('*')
+          .eq('agreement_id', agreementId);
+        rawData = fallback.data || [];
+      }
+    } catch {
+      const fallback = await supabase
+        .from('milestones')
+        .select('*')
+        .eq('agreement_id', agreementId);
+      rawData = fallback.data || [];
+    }
+
+    return (rawData || []).map((row: any) => ({
+      id: row.id,
+      agreement_id: row.agreement_id,
+      seq: row.sequence_order ?? row.seq ?? 1,
+      title: row.title || '',
+      description: row.description || '',
+      amount: Number(row.amount_centavos ?? row.amount ?? 0),
+      status: row.status,
+      revision_count: row.revision_count ?? 0,
+      revision_feedback: row.client_feedback ?? row.revision_feedback ?? null,
+      created_at: row.created_at,
+      updated_at: row.updated_at || row.created_at,
+    }));
   },
 
   async defineMilestones(
@@ -58,6 +88,37 @@ export const milestonesService = {
     return runOnce(
       `define_milestones:${agreementId}`,
       async (reqId) => {
+        // 1. Try rpc_setup_milestones first (IAS 1 redesign)
+        try {
+          const payload = milestones.map((m, idx) => ({
+            title: m.title.trim(),
+            description: (m.description || m.title).trim(),
+            amount_centavos: m.amount,
+            sequence_order: idx + 1,
+            due_date: null,
+          }));
+
+          const { data, error } = await supabase.rpc('rpc_setup_milestones', {
+            p_agreement_id: agreementId,
+            p_milestones: payload,
+          });
+
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Milestone setup failed.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return;
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Try legacy define_milestones RPC
         const baseArgs = {
           p_agreement_id: agreementId,
           p_milestones: milestones,
@@ -85,6 +146,30 @@ export const milestonesService = {
     return runOnce(
       `submit_milestone:${milestoneId}`,
       async (reqId) => {
+        // 1. Try rpc_submit_milestone first
+        try {
+          const { data, error } = await supabase.rpc('rpc_submit_milestone', {
+            p_milestone_id: milestoneId,
+            p_submission_notes: message,
+            p_submission_proof_url: filePaths[0] || null,
+          });
+
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Milestone submission failed.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return String(milestoneId);
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Fallback to submit_milestone
         const baseArgs = {
           p_milestone_id: milestoneId,
           p_message: message,
@@ -114,6 +199,30 @@ export const milestonesService = {
     return runOnce(
       `review_milestone:${milestoneId}:${action}`,
       async (reqId) => {
+        // 1. Try rpc_review_milestone first
+        try {
+          const { data, error } = await supabase.rpc('rpc_review_milestone', {
+            p_milestone_id: milestoneId,
+            p_decision: action,
+            p_feedback: feedback,
+          });
+
+          if (!error) {
+            if (data && typeof data === 'object' && (data as any).ok === false) {
+              const err: any = new Error((data as any).message || 'Milestone review failed.');
+              err.code = (data as any).code;
+              throw err;
+            }
+            return;
+          }
+          if (error.code !== 'PGRST202' && !error.message?.includes('not find')) {
+            throw error;
+          }
+        } catch (err: any) {
+          if (err?.code && err?.code !== 'PGRST202') throw err;
+        }
+
+        // 2. Fallback to review_milestone
         const baseArgs = {
           p_milestone_id: milestoneId,
           p_action: action,

@@ -202,7 +202,7 @@ export default function ModeSettingsScreen() {
                   status.cooldown_remaining_days > 0
                     ? `• Cooldown active: ${status.cooldown_remaining_days} day(s) remaining before you can switch again.`
                     : null,
-                  ...status.blockers.map((b) => `• ${b}`),
+                  ...(status.blockers || []).map((b) => `• ${b}`),
                 ]
                   .filter(Boolean)
                   .join('\n')}

@@ -84,17 +84,69 @@ interface AuditPage {
   page_size: number;
 }
 
+let cachedIsAdmin: { userId: string; val: boolean; expiresAt: number } | null = null;
+let cachedIsSuperAdmin: { userId: string; val: boolean; expiresAt: number } | null = null;
+let pendingAdminPromise: Promise<boolean> | null = null;
+let pendingSuperAdminPromise: Promise<boolean> | null = null;
+
+export const clearAdminCache = () => {
+  cachedIsAdmin = null;
+  cachedIsSuperAdmin = null;
+  pendingAdminPromise = null;
+  pendingSuperAdminPromise = null;
+};
+
 export const adminService = {
   async isAdmin(): Promise<boolean> {
-    const { data, error } = await supabase.rpc('is_admin');
-    if (error) throw error;
-    return data === true;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    const now = Date.now();
+    if (userId && cachedIsAdmin && cachedIsAdmin.userId === userId && cachedIsAdmin.expiresAt > now) {
+      return cachedIsAdmin.val;
+    }
+    if (pendingAdminPromise) {
+      return pendingAdminPromise;
+    }
+    pendingAdminPromise = (async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_admin');
+        if (error) throw error;
+        const res = data === true;
+        if (userId) {
+          cachedIsAdmin = { userId, val: res, expiresAt: Date.now() + 60000 };
+        }
+        return res;
+      } finally {
+        pendingAdminPromise = null;
+      }
+    })();
+    return pendingAdminPromise;
   },
 
   async isSuperAdmin(): Promise<boolean> {
-    const { data, error } = await supabase.rpc('is_super_admin');
-    if (error) throw error;
-    return data === true;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user?.id;
+    const now = Date.now();
+    if (userId && cachedIsSuperAdmin && cachedIsSuperAdmin.userId === userId && cachedIsSuperAdmin.expiresAt > now) {
+      return cachedIsSuperAdmin.val;
+    }
+    if (pendingSuperAdminPromise) {
+      return pendingSuperAdminPromise;
+    }
+    pendingSuperAdminPromise = (async () => {
+      try {
+        const { data, error } = await supabase.rpc('is_super_admin');
+        if (error) throw error;
+        const res = data === true;
+        if (userId) {
+          cachedIsSuperAdmin = { userId, val: res, expiresAt: Date.now() + 60000 };
+        }
+        return res;
+      } finally {
+        pendingSuperAdminPromise = null;
+      }
+    })();
+    return pendingSuperAdminPromise;
   },
 
   async dashboardMetrics(): Promise<Record<string, any>> {
@@ -132,6 +184,7 @@ export const adminService = {
   },
 
   async setAdminRole(userId: string, role: 'user' | 'admin' | 'super_admin') {
+    clearAdminCache();
     const { data, error } = await supabase.rpc('admin_set_admin_role', { p_user_id: userId, p_role: role });
     if (error) throw error;
     return data;
@@ -225,7 +278,7 @@ export const adminService = {
       const { data, error } = await supabase
         .from('profiles')
         .select('id, display_name, area, active_mode, is_legit_verified, verification_status, ai_legitimacy_score, ai_legitimacy_report, created_at, verified_at')
-        .in('verification_status', ['ai_flagged', 'approved', 'rejected'])
+        .in('verification_status', ['ai_flagged', 'pending', 'approved', 'rejected'])
         .order('created_at', { ascending: false });
 
       if (error) throw error;

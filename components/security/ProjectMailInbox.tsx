@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Mail, ChevronDown, ChevronUp, Copy, CheckCircle, X, Inbox } from 'lucide-react-native';
 import { useSegments } from 'expo-router';
-import { callRpc } from '../../lib/supabase';
+import { callRpc, supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../lib/theme';
 
@@ -71,13 +71,15 @@ export const ProjectMailInbox: React.FC = () => {
   const isConfirmEmailRoute = path.includes('confirm-email');
   const isForgotPasswordRoute = path.includes('forgot-password');
   const isEmailSettingsRoute = path.includes('settings') && path.includes('email');
-  const isOtpScreen = isConfirmEmailRoute || isForgotPasswordRoute || isEmailSettingsRoute;
+  const isVerifyOtpRoute = path.includes('verify-otp');
+  const isOtpScreen = isConfirmEmailRoute || isForgotPasswordRoute || isEmailSettingsRoute || isVerifyOtpRoute;
 
   // Once OTP is applied/verified, or when not on an OTP receiving screen, hide completely
   const isEmailAlreadyVerified = Boolean(profile?.email_verified);
   const shouldHide =
     !isOtpScreen ||
-    (isConfirmEmailRoute && isEmailAlreadyVerified && !effectiveChallengeId);
+    (isConfirmEmailRoute && isEmailAlreadyVerified && !effectiveChallengeId) ||
+    (isVerifyOtpRoute && isEmailAlreadyVerified && !effectiveChallengeId);
 
   const fetchMessages = useCallback(async () => {
     if (shouldHide || (!effectiveEmail && !effectiveChallengeId)) {
@@ -90,30 +92,45 @@ export const ProjectMailInbox: React.FC = () => {
         p_challenge_id: effectiveChallengeId || null,
       });
 
+      let valid: InboxMessage[] = [];
       if (Array.isArray(res)) {
-        // Filter out expired messages
-        const valid = res.filter((m) => new Date(m.expires_at).getTime() > Date.now());
-        setMessages(valid);
+        valid = res.filter((m) => new Date(m.expires_at).getTime() > Date.now());
+      } else if (res && Array.isArray((res as any).data)) {
+        valid = (res as any).data.filter((m: any) => new Date(m.expires_at).getTime() > Date.now());
+      }
 
-        if (valid.length > 0) {
-          const latest = valid[0];
+      // Fallback direct query if RPC returned empty
+      if (valid.length === 0 && effectiveEmail) {
+        const { data: directMsgs } = await supabase
+          .from('project_inbox_messages')
+          .select('*')
+          .eq('recipient_email', effectiveEmail)
+          .order('created_at', { ascending: false });
+        if (Array.isArray(directMsgs)) {
+          valid = directMsgs.filter((m: any) => new Date(m.expires_at).getTime() > Date.now());
+        }
+      }
 
-          // If activeChallengeId wasn't known, save it into auth context
-          if (!activeChallengeId && latest.otp_challenge_id) {
-            setActiveInboxContext(effectiveEmail || latest.recipient_email, latest.otp_challenge_id);
-          }
+      setMessages(valid);
 
-          // Trigger push banner for latest message if fresh (< 30s)
-          if (!bannerMessage && !isEmailAlreadyVerified) {
-            const ageSeconds = (Date.now() - new Date(latest.created_at).getTime()) / 1000;
-            if (ageSeconds < 30) {
-              setBannerMessage(latest);
-              setTimeout(() => setBannerMessage(null), 8000);
-            }
+      if (valid.length > 0) {
+        const latest = valid[0];
+
+        // If activeChallengeId wasn't known, save it into auth context
+        if (!activeChallengeId && latest.otp_challenge_id) {
+          setActiveInboxContext(effectiveEmail || latest.recipient_email, latest.otp_challenge_id);
+        }
+
+        // Trigger push banner for latest message if fresh (< 60s)
+        if (!bannerMessage && !isEmailAlreadyVerified) {
+          const ageSeconds = (Date.now() - new Date(latest.created_at).getTime()) / 1000;
+          if (ageSeconds < 60) {
+            setBannerMessage(latest);
+            setTimeout(() => setBannerMessage(null), 10000);
           }
         }
       }
-    } catch (err) {
+    } catch {
       // Quiet fail if not in unauth/auth inbox context
     }
   }, [shouldHide, effectiveEmail, effectiveChallengeId, activeChallengeId, bannerMessage, isEmailAlreadyVerified, setActiveInboxContext]);

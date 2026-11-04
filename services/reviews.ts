@@ -28,53 +28,101 @@ interface SubmitReviewParams {
 
 export const reviewsService = {
   async getUserReviews(userId: string): Promise<ReviewItem[]> {
-    const { data, error } = await supabase
-      .from('reviews')
-      .select(`
-        id,
-        agreement_id,
-        reviewer_id,
-        reviewee_id,
-        role,
-        rating,
-        comment,
-        created_at,
-        reviewer:profiles!reviews_reviewer_id_fkey(
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
           id,
-          display_name,
-          avatar_path
-        )
-      `)
-      .eq('reviewee_id', userId)
-      .order('created_at', { ascending: false });
+          agreement_id,
+          reviewer_id,
+          reviewee_id,
+          role,
+          rating,
+          comment,
+          created_at,
+          reviewer:profiles!reviews_reviewer_id_fkey(
+            id,
+            display_name,
+            avatar_path
+          )
+        `)
+        .eq('reviewee_id', userId)
+        .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as any[];
+      if (!error && data) {
+        return (data || []).map((r: any) => ({
+          ...r,
+          role: r.role || r.target_role || 'client',
+        })) as any[];
+      }
+
+      // Resilient fallback query if relation or column needs target_role
+      const fallback = await supabase
+        .from('reviews')
+        .select('id, agreement_id, reviewer_id, reviewee_id, target_role, rating, comment, created_at')
+        .eq('reviewee_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (!fallback.error && fallback.data) {
+        return fallback.data.map((r: any) => ({
+          ...r,
+          role: r.target_role || 'client',
+        })) as any[];
+      }
+      return [];
+    } catch (err) {
+      console.warn('getUserReviews caught error:', err);
+      return [];
+    }
   },
 
   async getAgreementReviews(agreementId: string): Promise<ReviewItem[]> {
-    const { data, error } = await supabase
-      .from('reviews')
-      .select(`
-        id,
-        agreement_id,
-        reviewer_id,
-        reviewee_id,
-        role,
-        rating,
-        comment,
-        created_at,
-        reviewer:profiles!reviews_reviewer_id_fkey(
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select(`
           id,
-          display_name,
-          avatar_path
-        )
-      `)
-      .eq('agreement_id', agreementId)
-      .order('created_at', { ascending: true });
+          agreement_id,
+          reviewer_id,
+          reviewee_id,
+          role,
+          rating,
+          comment,
+          created_at,
+          reviewer:profiles!reviews_reviewer_id_fkey(
+            id,
+            display_name,
+            avatar_path
+          )
+        `)
+        .eq('agreement_id', agreementId)
+        .order('created_at', { ascending: true });
 
-    if (error) throw error;
-    return (data || []) as any[];
+      if (!error && data) {
+        return (data || []).map((r: any) => ({
+          ...r,
+          role: r.role || r.target_role || 'client',
+        })) as any[];
+      }
+
+      // Resilient fallback query
+      const fallback = await supabase
+        .from('reviews')
+        .select('id, agreement_id, reviewer_id, reviewee_id, target_role, rating, comment, created_at')
+        .eq('agreement_id', agreementId)
+        .order('created_at', { ascending: true });
+
+      if (!fallback.error && fallback.data) {
+        return fallback.data.map((r: any) => ({
+          ...r,
+          role: r.target_role || 'client',
+        })) as any[];
+      }
+      return [];
+    } catch (err) {
+      console.warn('getAgreementReviews caught error:', err);
+      return [];
+    }
   },
 
   async submitReview(params: SubmitReviewParams): Promise<string> {

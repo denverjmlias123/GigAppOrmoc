@@ -91,23 +91,25 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           ) : null}
 
           <View style={styles.buttonRow}>
-            <Button
-              title={cancelText}
-              variant="secondary"
-              size="md"
-              onPress={onCancel}
-              disabled={loading}
-              style={styles.dialogBtn}
-            />
+            {cancelText && cancelText.trim() !== '' ? (
+              <Button
+                title={cancelText}
+                variant="secondary"
+                size="md"
+                onPress={onCancel}
+                disabled={loading}
+                style={styles.dialogBtn}
+              />
+            ) : null}
 
             <Button
-              title={confirmText}
+              title={confirmText || 'OK'}
               variant={destructive ? 'danger' : 'primary'}
               size="md"
               onPress={onConfirm}
               loading={loading}
               disabled={loading}
-              style={styles.dialogBtn}
+              style={[styles.dialogBtn, (!cancelText || cancelText.trim() === '') && { flex: 1 }]}
             />
           </View>
         </Pressable>

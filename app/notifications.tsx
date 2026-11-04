@@ -77,6 +77,13 @@ export default function NotificationsScreen() {
       }
     }
 
+    if (item.target_route) {
+      try {
+        router.push(item.target_route as any);
+        return;
+      } catch {}
+    }
+
     const agreementId =
       item.entity_type === 'agreement'
         ? item.entity_id

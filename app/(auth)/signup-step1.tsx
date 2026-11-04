@@ -22,8 +22,6 @@ import { PasswordPolicyChecklist } from '../../components/ui/PasswordPolicyCheck
 import { TextInput } from '../../components/ui/TextInput';
 import { Button, IconButton } from '../../components/ui/Button';
 import { Card, AlertBox } from '../../components/ui/Card';
-import { DateOfBirthField } from '../../components/ui/DateOfBirthField';
-import { isAtLeast18, parseIsoDate } from '../../utils/dateOfBirth';
 
 export default function SignUpStep1Screen() {
   const router = useRouter();
@@ -35,7 +33,6 @@ export default function SignUpStep1Screen() {
   const [email, setEmail] = useState(params.email || '');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +42,6 @@ export default function SignUpStep1Screen() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
-  const [dobError, setDobError] = useState<string | null>(null);
   const [termsError, setTermsError] = useState<string | null>(null);
 
   const inFlightRef = useRef(false);
@@ -91,8 +87,6 @@ export default function SignUpStep1Screen() {
     setEmailError(null);
     setPasswordError(null);
     setConfirmPasswordError(null);
-    setDobError(null);
-    setTermsError(null);
 
     let hasFieldError = false;
 
@@ -132,17 +126,6 @@ export default function SignUpStep1Screen() {
       hasFieldError = true;
     }
 
-    const birthDate = parseIsoDate(dateOfBirth);
-    if (!birthDate) {
-      setDobError(strings.auth.dateOfBirthInvalid);
-      setError(strings.auth.dateOfBirthInvalid);
-      hasFieldError = true;
-    } else if (!isAtLeast18(dateOfBirth)) {
-      setDobError(strings.auth.dateOfBirthUnder18);
-      setError(strings.auth.dateOfBirthUnder18);
-      hasFieldError = true;
-    }
-
     if (!termsAccepted) {
       const msg = strings.auth.signupTermsRequired;
       setTermsError(msg);
@@ -155,61 +138,9 @@ export default function SignUpStep1Screen() {
       return;
     }
 
-    inFlightRef.current = true;
-    setPending(true);
-    try {
-      setSignupDraft({ displayName: displayName.trim(), email: normalizedEmail, password });
-
-      // 1. Create the Supabase Auth user (DOB passed for the 18+ trigger)
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          data: {
-            display_name: displayName.trim(),
-            dob: dateOfBirth,
-            terms_version: 'v1.0',
-          },
-        },
-      });
-
-      if (signUpError) {
-        if (
-          authService.isDuplicateEmailAuthResult(signUpError, signUpData)
-        ) {
-          setError(strings.auth.duplicateEmailMessage);
-          setEmailError(strings.auth.duplicateEmailMessage);
-          triggerShake();
-          return;
-        }
-        throw signUpError;
-      }
-
-      const userId = signUpData?.user?.id;
-      if (!userId) {
-        throw new Error('Account created but no user id returned.');
-      }
-
-      // Generate the system auto-generated 6-digit OTP and go to verify-otp
-      try {
-        const otpCode = await authService.createSignupOtp(userId);
-        router.push({
-          pathname: '/(auth)/verify-otp',
-          params: { userId, otpCode, email: normalizedEmail },
-        });
-      } catch {
-        router.push({
-          pathname: '/(auth)/verify-otp',
-          params: { userId, email: normalizedEmail },
-        });
-      }
-    } catch (err: any) {
-      triggerShake();
-      setError(toAppError(err, strings.errors.generic).message);
-    } finally {
-      inFlightRef.current = false;
-      setPending(false);
-    }
+    setSignupDraft({ displayName: displayName.trim(), email: normalizedEmail, password });
+    // Step 2 handles registration and proceeds to verify-otp
+    router.push('/(auth)/signup-step2');
   };
 
   return (
@@ -301,7 +232,7 @@ export default function SignUpStep1Screen() {
                   onChangeText={(val) => {
                     setDisplayName(val);
                     if (displayNameError) setDisplayNameError(null);
-                    if (error && !emailError && !passwordError && !confirmPasswordError && !dobError) setError(null);
+                    if (error && !emailError && !passwordError && !confirmPasswordError && !termsError) setError(null);
                   }}
                   placeholder={strings.auth.signupDisplayNamePlaceholder}
                   autoCapitalize="words"
@@ -319,7 +250,7 @@ export default function SignUpStep1Screen() {
                   onChangeText={(val) => {
                     setEmail(val);
                     if (emailError) setEmailError(null);
-                    if (error && !displayNameError && !passwordError && !confirmPasswordError && !dobError) setError(null);
+                    if (error && !displayNameError && !passwordError && !confirmPasswordError && !termsError) setError(null);
                   }}
                   placeholder={strings.auth.signupEmailPlaceholder}
                   autoCapitalize="none"
@@ -367,17 +298,6 @@ export default function SignUpStep1Screen() {
                   error={confirmPasswordError}
                 />
               </View>
-
-              <DateOfBirthField
-                label={strings.auth.dateOfBirthLabel}
-                value={dateOfBirth}
-                onChange={(value) => {
-                  setDateOfBirth(value);
-                  setDobError(null);
-                  if (error) setError(null);
-                }}
-                error={dobError}
-              />
 
               <Pressable
                 style={styles.checkboxContainer}

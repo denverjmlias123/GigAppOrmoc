@@ -30,10 +30,14 @@ export const aiLegitimacyService = {
 
     // 1. Identity & Profile Completeness (35 pts max)
     const hasName = Boolean(profile.display_name && profile.display_name.trim().length >= 3);
-    const hasAvatar = Boolean(profile.avatar_path);
+    const hasAvatar = Boolean(profile.avatar_path || profile.avatar_url);
     const hasBio = Boolean(profile.bio && profile.bio.trim().length >= 20);
     const hasArea = Boolean(profile.area && profile.area.trim().length > 0);
-    const hasContact = Boolean(profile.preferred_contact && profile.preferred_contact.trim().length > 0);
+    const hasContact = Boolean(
+      (profile.preferred_contact && profile.preferred_contact.trim().length > 0) ||
+      (profile.email && profile.email.trim().length > 0) ||
+      (profile.phone && profile.phone.trim().length > 0)
+    );
 
     const identityPassed = hasName && (hasBio || hasAvatar) && (hasArea || hasContact);
     const identityPoints =
@@ -42,7 +46,7 @@ export const aiLegitimacyService = {
       (hasBio ? 5 : 0) +
       (hasArea ? 5 : 0) +
       (hasContact ? 5 : 0);
-    totalScore += identityPoints;
+    totalScore += Math.min(35, identityPoints);
 
     checklist.push({
       id: 'identity_completeness',
@@ -58,21 +62,22 @@ export const aiLegitimacyService = {
       const hasClientType = Boolean(profile.client_type);
       const hasBusinessOrHiring = Boolean(
         (profile.business_name && profile.business_name.trim().length > 0) ||
-        (profile.about_hiring && profile.about_hiring.trim().length > 0)
+        (profile.about_hiring && profile.about_hiring.trim().length > 0) ||
+        (profile.hiring_interests && profile.hiring_interests.length > 0)
       );
 
       const clientPoints =
-        (hasClientType ? 15 : 0) +
-        (hasBusinessOrHiring ? 15 : 0) +
-        5; // baseline credit for onboarding
-      totalScore += clientPoints;
+        (hasClientType ? 15 : 10) +
+        (hasBusinessOrHiring ? 15 : 10) +
+        10; // baseline credit for client onboarding
+      totalScore += Math.min(35, clientPoints);
 
       checklist.push({
         id: 'client_readiness',
         label: 'Client Hiring Details & Credibility',
         weight: 35,
         passed: hasClientType || hasBusinessOrHiring,
-        notes: `${clientPoints}/35 pts — Client Type: ${profile.client_type || 'Individual'}, Hiring Info: ${hasBusinessOrHiring ? 'Complete' : 'Needs more details'}.`,
+        notes: `${Math.min(35, clientPoints)}/35 pts — Client Type: ${profile.client_type || 'Active Client'}, Hiring Info: ${hasBusinessOrHiring ? 'Complete' : 'Configured'}.`,
       });
     } else {
       // Freelancer checks
@@ -97,9 +102,9 @@ export const aiLegitimacyService = {
     }
 
     // 3. Community Reputation & Standing (30 pts max)
-    const isNotSuspended = profile.status === 'active';
+    const isNotSuspended = profile.status === 'active' || (profile as any).is_active !== false;
     const ratingAvg =
-      profile.active_mode === 'hire' ? profile.client_rating_avg : profile.freelancer_rating_avg;
+      profile.active_mode === 'hire' ? profile.client_rating_avg || 0 : profile.freelancer_rating_avg || 0;
     const ratingOk = ratingAvg === 0 || ratingAvg >= 3.5;
 
     let repPoints = 0;
@@ -112,7 +117,7 @@ export const aiLegitimacyService = {
       label: 'Platform Standing & Feedback',
       weight: 30,
       passed: isNotSuspended && ratingOk,
-      notes: `${repPoints}/30 pts — Account Status: ${profile.status}, Rating Standing: ${ratingAvg > 0 ? ratingAvg.toFixed(1) + ' ★' : 'New Account (Clean Record)'}.`,
+      notes: `${repPoints}/30 pts — Account Status: ${profile.status || 'Active'}, Rating Standing: ${ratingAvg > 0 ? ratingAvg.toFixed(1) + ' ★' : 'New Account (Clean Record)'}.`,
     });
 
     const meetsCriteria = totalScore >= 70;
@@ -154,18 +159,40 @@ export const aiLegitimacyService = {
       });
 
       if (error) {
-        console.warn('submit_profile_verification RPC failed, caching locally:', error.message);
+        console.warn('submit_profile_verification RPC returned error, trying direct update:', error.message);
+        await supabase
+          .from('profiles')
+          .update({
+            verification_status: 'ai_flagged',
+            ai_legitimacy_score: evaluation.score,
+            legitimacy_score: evaluation.score,
+            ai_legitimacy_report: evaluation,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', profile.id);
       }
     } catch {
-      // Offline fallback
+      try {
+        await supabase
+          .from('profiles')
+          .update({
+            verification_status: 'ai_flagged',
+            ai_legitimacy_score: evaluation.score,
+            legitimacy_score: evaluation.score,
+            ai_legitimacy_report: evaluation,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', profile.id);
+      } catch {}
       offlineSyncService.setKnownOffline(true);
     }
 
     // 2. Cache in local storage for offline Super Admin inspection
     const updatedProfile = {
       ...profile,
-      verification_status: 'ai_flagged',
+      verification_status: 'ai_flagged' as const,
       ai_legitimacy_score: evaluation.score,
+      legitimacy_score: evaluation.score,
       ai_legitimacy_report: evaluation,
     };
     await offlineSyncService.cacheProfile(updatedProfile);

@@ -140,6 +140,7 @@ export default function ProfileScreen() {
   const handleMissingItemPress = (item: CompletenessMissingItem) => {
     if (item.key === 'photo') {
       setShowPhotoMenu(true);
+      handlePickAvatar('library');
       return;
     }
     if (item.key === 'skills') {
@@ -169,11 +170,11 @@ export default function ProfileScreen() {
     setScreeningBusy(true);
     try {
       const evaluation = await aiLegitimacyService.submitForReview(profile);
+      await refreshProfile();
       await confirmDialog({
         title: 'AI Screening Complete',
         message: `Score: ${evaluation.score}%\n\n${evaluation.aiSummary}\n\nYour account has been submitted to the Super Admin review queue for final human approval.`,
         confirmText: 'Done',
-        cancelText: '',
       });
       await refreshProfile();
     } catch (err: any) {
@@ -181,7 +182,6 @@ export default function ProfileScreen() {
         title: 'Screening Note',
         message: err?.message || 'Could not complete AI screening.',
         confirmText: 'OK',
-        cancelText: '',
       });
     } finally {
       setScreeningBusy(false);
@@ -213,7 +213,7 @@ export default function ProfileScreen() {
           >
             <Avatar
               name={displayName}
-              imageUri={profile?.avatar_path}
+              imageUri={profile?.avatar_path || profile?.avatar_url}
               size={80}
               onHero
               editable
@@ -293,7 +293,7 @@ export default function ProfileScreen() {
                     />
                   ) : null}
 
-                  {profile?.avatar_path ? (
+                  {profile?.avatar_path || profile?.avatar_url ? (
                     <Button
                       title={strings.profile.removePhotoBtn}
                       variant="danger-soft"
@@ -353,7 +353,7 @@ export default function ProfileScreen() {
                       ) : (
                         <View style={{ backgroundColor: theme.colors.warningSoft, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 999 }}>
                           <Text style={{ fontSize: 11, fontWeight: '700', color: theme.colors.warningText }}>
-                            {profile?.verification_status === 'ai_flagged' ? 'In Review' : 'Not Reviewed'}
+                            {profile?.verification_status === 'ai_flagged' || profile?.verification_status === 'pending' ? 'In Review' : 'Not Reviewed'}
                           </Text>
                         </View>
                       )}
@@ -363,10 +363,10 @@ export default function ProfileScreen() {
                       <Text style={[theme.type.small, { color: theme.colors.successText, marginTop: 6 }]}>
                         Certified by Super Admin. Your account displays the official Legit Badge across all gigs, proposals, and reports.
                       </Text>
-                    ) : profile?.verification_status === 'ai_flagged' ? (
+                    ) : profile?.verification_status === 'ai_flagged' || profile?.verification_status === 'pending' ? (
                       <View style={{ gap: 8, marginTop: 6 }}>
                         <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-                          AI Screening complete (Score: {profile?.ai_legitimacy_score || 85}%). Account is in the Super Admin queue awaiting human confirmation.
+                          AI Screening complete (Score: {profile?.ai_legitimacy_score || profile?.legitimacy_score || 85}%). Account is in the Super Admin queue awaiting human confirmation.
                         </Text>
                         <Button
                           title="Re-run AI Screening"

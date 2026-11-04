@@ -71,8 +71,16 @@ export default function GigsScreen() {
     }
   }, [params.tab, params.categoryId]);
 
+  const hasLoadedRef = useRef(false);
+  const lastSegmentRef = useRef<string>(clientSegment);
+
   const loadData = async (searchOverride = searchQuery, isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
+    const isSegmentChange = lastSegmentRef.current !== clientSegment;
+    lastSegmentRef.current = clientSegment;
+
+    if (!isRefresh && (!hasLoadedRef.current || isSegmentChange)) {
+      setLoading(true);
+    }
     setError(null);
     try {
       if (isClient && clientSegment === 'my_gigs') {
@@ -103,6 +111,7 @@ export default function GigsScreen() {
         setCategories(categoriesData);
         setGigs(gigsData);
       }
+      hasLoadedRef.current = true;
     } catch (err: any) {
       setError(err?.message || 'Failed to load data.');
     } finally {
@@ -189,12 +198,45 @@ export default function GigsScreen() {
     { id: 'closed', label: 'Closed' },
   ];
 
+  const clientStatusCounts = React.useMemo(() => {
+    const counts: Record<ClientStatusFilter, number> = {
+      all: myGigs.length,
+      open: 0,
+      draft: 0,
+      in_progress: 0,
+      closed: 0,
+    };
+    for (const g of myGigs) {
+      const s = (g.status || '').toLowerCase().trim();
+      if (s === 'open' || s === 'active') {
+        counts.open += 1;
+      } else if (s === 'draft' || s === 'drafts') {
+        counts.draft += 1;
+      } else if (s === 'in_progress' || s === 'in-progress' || s === 'progress') {
+        counts.in_progress += 1;
+      } else if (['completed', 'cancelled', 'expired', 'closed'].includes(s)) {
+        counts.closed += 1;
+      }
+    }
+    return counts;
+  }, [myGigs]);
+
   const filteredMyGigs = myGigs.filter((g) => {
+    const s = (g.status || '').toLowerCase().trim();
     if (clientStatusFilter === 'all') return true;
     if (clientStatusFilter === 'closed') {
-      return ['completed', 'cancelled', 'expired'].includes(g.status);
+      return ['completed', 'cancelled', 'expired', 'closed'].includes(s);
     }
-    return g.status === clientStatusFilter;
+    if (clientStatusFilter === 'open') {
+      return s === 'open' || s === 'active';
+    }
+    if (clientStatusFilter === 'draft') {
+      return s === 'draft' || s === 'drafts';
+    }
+    if (clientStatusFilter === 'in_progress') {
+      return s === 'in_progress' || s === 'in-progress' || s === 'progress';
+    }
+    return s === clientStatusFilter;
   });
 
   const selectedCategoryName = categories.find((c) => c.id === selectedCategory)?.name;
@@ -373,6 +415,7 @@ export default function GigsScreen() {
                 <Chip
                   key={f.id}
                   label={f.label}
+                  count={clientStatusCounts[f.id]}
                   selected={clientStatusFilter === f.id}
                   onPress={() => setClientStatusFilter(f.id)}
                 />
@@ -406,7 +449,7 @@ export default function GigsScreen() {
                 title="No posted gigs found"
                 description={
                   clientStatusFilter !== 'all'
-                    ? `You have no gigs with status "${clientStatusFilter}".`
+                    ? `You have no ${clientStatusFilters.find((f) => f.id === clientStatusFilter)?.label.toLowerCase() || clientStatusFilter} gigs.`
                     : "You have not created any gigs yet."
                 }
                 actionTitle={clientStatusFilter !== 'all' ? "View All Gigs" : "Post a Gig"}

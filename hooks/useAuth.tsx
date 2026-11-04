@@ -7,6 +7,9 @@ import { authService, Profile } from '../services/auth';
 import { strings } from '../constants/strings';
 import { sessionService } from '../services/sessions';
 import { offlineSyncService } from '../services/offlineSync';
+import { clearAdminCache, adminService } from '../services/admin';
+
+export type UserProfile = Profile;
 
 interface SignOutOptions {
   scope?: 'local' | 'global';
@@ -15,10 +18,18 @@ interface SignOutOptions {
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  isLoading: boolean;
   isOffline: boolean;
+  adminRole: 'admin' | 'super_admin' | null;
+  currentSessionId: string | null;
+  activeInboxEmail: string | null;
+  activeChallengeId: string | null;
   authNotice: string | null;
+  profileError: string | null;
+  setActiveInboxContext: (email: string | null, challengeId: string | null) => void;
   clearAuthNotice: () => void;
   refreshProfile: (explicitUserOrId?: User | string) => Promise<Profile | null>;
   signOut: (options?: SignOutOptions) => Promise<void>;
@@ -27,10 +38,18 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   profile: null,
   loading: true,
+  isLoading: true,
   isOffline: false,
+  adminRole: null,
+  currentSessionId: null,
+  activeInboxEmail: null,
+  activeChallengeId: null,
   authNotice: null,
+  profileError: null,
+  setActiveInboxContext: () => {},
   clearAuthNotice: () => {},
   refreshProfile: async (_explicitUserOrId?: User | string) => null,
   signOut: async () => {},
@@ -38,11 +57,27 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [adminRole, setAdminRole] = useState<'admin' | 'super_admin' | null>(null);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [activeInboxEmail, setActiveInboxEmail] = useState<string | null>(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem('gigormoc_inbox_email') || null;
+    }
+    return null;
+  });
+  const [activeChallengeId, setActiveChallengeId] = useState<string | null>(() => {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      return window.localStorage.getItem('gigormoc_inbox_challenge') || null;
+    }
+    return null;
+  });
   const [loading, setLoading] = useState<boolean>(true);
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   const signOutInFlightRef = useRef<Promise<void> | null>(null);
   const hadActiveSessionRef = useRef<boolean>(false);
@@ -73,9 +108,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           // Ignore
         }
         await performSharedCleanup({ clearAuthStorage: true });
+        clearAdminCache();
 
         setUser(null);
+        setSession(null);
         setProfile(null);
+        setAdminRole(null);
+        setCurrentSessionId(null);
 
         if (options?.reason === 'session_expired') {
           setAuthNotice(strings.errors.sessionExpired);
@@ -191,7 +230,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       hadActiveSessionRef.current = true;
       handledSignedOutRef.current = false;
       setUser(userData?.user || currentSession.user);
+      setSession(currentSession);
       setProfile(p);
+
+      sessionService.getCurrentSessionId().then((sId) => {
+        if (sId) setCurrentSessionId(sId);
+      }).catch(() => {});
+
+      adminService.isSuperAdmin().then((isSuper) => {
+        if (isSuper) {
+          setAdminRole('super_admin');
+        } else {
+          adminService.isAdmin().then((isAdmin) => {
+            setAdminRole(isAdmin ? 'admin' : null);
+          }).catch(() => setAdminRole(null));
+        }
+      }).catch(() => setAdminRole(null));
 
       // Trigger background sync of any pending actions
       void offlineSyncService.syncPendingActions().catch(() => {});
@@ -254,7 +308,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setAuthNotice(strings.errors.loggedOutNotice);
         }
         setUser(null);
+        setSession(null);
         setProfile(null);
+        setAdminRole(null);
+        setCurrentSessionId(null);
         setLoading(false);
       } else {
         await syncUserState(s);
@@ -354,6 +411,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const setActiveInboxContext = (email: string | null, challengeId: string | null) => {
+    setActiveInboxEmail(email);
+    setActiveChallengeId(challengeId);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+      if (email) {
+        window.localStorage.setItem('gigormoc_inbox_email', email);
+      } else {
+        window.localStorage.removeItem('gigormoc_inbox_email');
+      }
+      if (challengeId) {
+        window.localStorage.setItem('gigormoc_inbox_challenge', challengeId);
+      } else {
+        window.localStorage.removeItem('gigormoc_inbox_challenge');
+      }
+    }
+  };
+
   const signOut = async (options?: SignOutOptions) => {
     await clearAuth(options);
   };
@@ -362,10 +436,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        session,
         profile,
         loading,
+        isLoading: loading,
         isOffline,
+        adminRole,
+        currentSessionId,
+        activeInboxEmail,
+        activeChallengeId,
         authNotice,
+        profileError,
+        setActiveInboxContext,
         clearAuthNotice,
         refreshProfile,
         signOut,

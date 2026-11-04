@@ -24,7 +24,7 @@ import { showToast } from '../../components/ui/Toast';
 import { profileService, PublicProfileData } from '../../services/profile';
 import { reviewsService, ReviewItem } from '../../services/reviews';
 import { chatService, ConversationSummary } from '../../services/chat';
-import { strings } from '../../constants/strings';
+import { strings, mapSqlErrorToFriendlyMessage } from '../../constants/strings';
 
 export default function PublicProfileScreen() {
   const router = useRouter();
@@ -63,7 +63,7 @@ export default function PublicProfileScreen() {
           }
         }
       } catch (err: any) {
-        if (mounted) setError(err?.message || 'Could not load profile.');
+        if (mounted) setError(mapSqlErrorToFriendlyMessage(err, 'Could not load profile.'));
       } finally {
         if (mounted) setLoading(false);
       }

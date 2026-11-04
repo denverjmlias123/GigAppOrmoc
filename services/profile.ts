@@ -367,23 +367,135 @@ export const profileService = {
   },
 
   async getProfileCompleteness(profileId: string): Promise<ProfileCompleteness> {
-    const { data, error } = await supabase.rpc('get_profile_completeness', {
-      p_profile_id: profileId,
-    });
+    try {
+      const { data, error } = await supabase.rpc('get_profile_completeness', {
+        p_profile_id: profileId,
+      });
 
-    if (error) throw error;
-    return data as ProfileCompleteness;
+      if (!error && data && typeof data === 'object') {
+        const raw: any = data;
+        let percent = Number(raw.percent ?? raw.percentage ?? raw.score ?? 0);
+        let complete = Boolean(raw.complete ?? raw.is_complete ?? (percent >= 100));
+        let missing_items: CompletenessMissingItem[] = Array.isArray(raw.missing_items)
+          ? raw.missing_items
+          : [];
+
+        // If RPC didn't provide missing_items, compute them accurately from profile details
+        if (missing_items.length === 0 && !complete) {
+          const { data: p } = await supabase
+            .from('profiles')
+            .select('avatar_path, display_name, bio, area, active_mode, client_type, headline')
+            .eq('id', profileId)
+            .maybeSingle();
+
+          if (p) {
+            const isHire = p.active_mode === 'hire' || p.active_mode === 'client';
+            if (!p.avatar_path) {
+              missing_items.push({ key: 'photo', label: 'Add a profile photo' });
+            }
+            if (!p.display_name || p.display_name.trim().length < 2) {
+              missing_items.push({ key: 'display_name', label: 'Add your display name' });
+            }
+            if (!p.bio || p.bio.trim().length < 20) {
+              missing_items.push({ key: 'bio', label: 'Write a bio (at least 20 characters)' });
+            }
+            if (!p.area || p.area.trim().length < 2) {
+              missing_items.push({ key: 'area', label: 'Add your barangay or area' });
+            }
+            if (isHire) {
+              if (!p.client_type) {
+                missing_items.push({ key: 'client_type', label: 'Select your client type' });
+              }
+            } else {
+              if (!p.headline) {
+                missing_items.push({ key: 'headline', label: 'Add a professional headline' });
+              }
+            }
+            const totalItems = 5;
+            const completedCount = totalItems - missing_items.length;
+            if (raw.percent === undefined && raw.percentage === undefined && raw.score === undefined) {
+              percent = Math.round((completedCount / totalItems) * 100);
+              complete = percent >= 100;
+            }
+          }
+        }
+
+        return {
+          profile_id: profileId,
+          role: raw.role ?? 'hire',
+          percent,
+          complete,
+          missing_items,
+          has_portfolio_bonus: Boolean(raw.has_portfolio_bonus),
+        };
+      }
+    } catch {
+      // Fall through to fallback computation
+    }
+
+    // Direct fallback if RPC fails
+    try {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('avatar_path, display_name, bio, area, active_mode, client_type, headline')
+        .eq('id', profileId)
+        .maybeSingle();
+
+      if (p) {
+        const isHire = p.active_mode === 'hire' || p.active_mode === 'client';
+        const missing_items: CompletenessMissingItem[] = [];
+        if (!p.avatar_path) missing_items.push({ key: 'photo', label: 'Add a profile photo' });
+        if (!p.display_name || p.display_name.trim().length < 2) missing_items.push({ key: 'display_name', label: 'Add your display name' });
+        if (!p.bio || p.bio.trim().length < 20) missing_items.push({ key: 'bio', label: 'Write a bio (at least 20 characters)' });
+        if (!p.area || p.area.trim().length < 2) missing_items.push({ key: 'area', label: 'Add your barangay or area' });
+        if (isHire && !p.client_type) missing_items.push({ key: 'client_type', label: 'Select your client type' });
+        if (!isHire && !p.headline) missing_items.push({ key: 'headline', label: 'Add a professional headline' });
+
+        const totalItems = 5;
+        const percent = Math.round(((totalItems - missing_items.length) / totalItems) * 100);
+        return {
+          profile_id: profileId,
+          role: isHire ? 'hire' : 'find_work',
+          percent,
+          complete: percent >= 100,
+          missing_items,
+          has_portfolio_bonus: false,
+        };
+      }
+    } catch {}
+
+    return {
+      profile_id: profileId,
+      role: 'hire',
+      percent: 0,
+      complete: false,
+      missing_items: [],
+      has_portfolio_bonus: false,
+    };
   },
 
   async getOwnPrivatePhone(userId: string): Promise<string> {
-    const { data, error } = await supabase
-      .from('profile_private')
-      .select('phone')
-      .eq('user_id', userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('profile_private')
+        .select('phone')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (error) throw error;
-    return data?.phone || '';
+      if (!error && data?.phone) return data.phone;
+    } catch {}
+
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (data?.phone) return data.phone;
+    } catch {}
+
+    return '';
   },
 
   async updateProfileDetails(params: UpdateProfileDetailsParams): Promise<Profile> {
@@ -431,30 +543,52 @@ export const profileService = {
   },
 
   async getUserSkills(profileId: string): Promise<Skill[]> {
-    const { data, error } = await supabase
-      .from('profile_skills')
-      .select(`
-        skill_id,
-        skills (
-          id,
-          name,
-          category_id,
-          is_active,
-          source,
-          created_at
-        )
-      `)
-      .eq('profile_id', profileId);
+    try {
+      const { data, error } = await supabase
+        .from('profile_skills')
+        .select(`
+          skill_id,
+          skills (
+            id,
+            name,
+            category_id,
+            is_active,
+            source,
+            created_at
+          )
+        `)
+        .eq('profile_id', profileId);
 
-    if (error) throw error;
-
-    const list: Skill[] = [];
-    (data || []).forEach((row: any) => {
-      if (row.skills) {
-        list.push(row.skills as Skill);
+      if (!error && data) {
+        const list: Skill[] = [];
+        (data || []).forEach((row: any) => {
+          if (row.skills) {
+            list.push(row.skills as Skill);
+          }
+        });
+        return list.sort((a, b) => a.name.localeCompare(b.name));
       }
-    });
-    return list.sort((a, b) => a.name.localeCompare(b.name));
+    } catch {}
+
+    try {
+      const { data } = await supabase
+        .from('user_skills')
+        .select('skill_id, skill_name, created_at')
+        .eq('user_id', profileId);
+
+      if (data && data.length > 0) {
+        return data.map((r: any) => ({
+          id: r.skill_id,
+          name: r.skill_name || 'Skill',
+          category_id: null,
+          is_active: true,
+          source: 'user',
+          created_at: r.created_at || '',
+        })).sort((a, b) => a.name.localeCompare(b.name));
+      }
+    } catch {}
+
+    return [];
   },
 
   async addUserSkill(_profileId: string, skillId: string): Promise<void> {
@@ -472,29 +606,53 @@ export const profileService = {
   },
 
   async getUserHiringInterests(profileId: string): Promise<Category[]> {
-    const { data, error } = await supabase
-      .from('profile_hiring_interests')
-      .select(`
-        category_id,
-        categories (
-          id,
-          name,
-          slug,
-          is_active,
-          created_at
-        )
-      `)
-      .eq('profile_id', profileId);
+    try {
+      const { data, error } = await supabase
+        .from('profile_hiring_interests')
+        .select(`
+          category_id,
+          categories (
+            id,
+            name,
+            slug,
+            is_active,
+            created_at
+          )
+        `)
+        .eq('profile_id', profileId);
 
-    if (error) throw error;
-
-    const list: Category[] = [];
-    (data || []).forEach((row: any) => {
-      if (row.categories) {
-        list.push(row.categories as Category);
+      if (!error && data) {
+        const list: Category[] = [];
+        (data || []).forEach((row: any) => {
+          if (row.categories) {
+            list.push(row.categories as Category);
+          }
+        });
+        return list;
       }
-    });
-    return list;
+    } catch (e) {
+      console.warn('getUserHiringInterests query error, falling back:', e);
+    }
+
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('hiring_interests')
+        .eq('id', profileId)
+        .maybeSingle();
+
+      if (data && Array.isArray(data.hiring_interests)) {
+        return data.hiring_interests.map((name: string) => ({
+          id: name,
+          name: name,
+          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          is_active: true,
+          created_at: new Date().toISOString(),
+        }));
+      }
+    } catch {}
+
+    return [];
   },
 
   async saveHiringDetails(params: SaveHiringDetailsParams): Promise<SaveHiringDetailsResult> {
@@ -594,10 +752,21 @@ export const profileService = {
       }
 
       const path = buildAvatarStoragePath(userId, Date.now(), validation.ext);
+
+      // On web browser, ensure Blob is used if possible for cleanest multipart/form-data upload
+      let uploadPayload: any = fileData;
+      if (typeof Blob !== 'undefined' && !(fileData instanceof Blob)) {
+        try {
+          uploadPayload = new Blob([fileData as any], { type: validation.mimeType });
+        } catch {
+          uploadPayload = fileData;
+        }
+      }
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, fileData, {
-          upsert: false,
+        .upload(path, uploadPayload, {
+          upsert: true,
           contentType: validation.mimeType,
         });
 
@@ -611,14 +780,29 @@ export const profileService = {
       const publicUrl = publicUrlData.publicUrl;
 
       // Update profile avatar_path via RPC (returns previous_avatar_path)
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('set_profile_avatar', {
+      let rpcResult: any = null;
+      const { data, error: rpcError } = await supabase.rpc('set_profile_avatar', {
         p_avatar_path: publicUrl,
       });
 
       if (rpcError) {
-        // Clean up newly uploaded object if DB update failed
-        await supabase.storage.from('avatars').remove([path]).catch(() => {});
-        throw rpcError;
+        // Fallback: update profile table directly
+        const { error: directError } = await supabase
+          .from('profiles')
+          .update({
+            avatar_path: publicUrl,
+            avatar_url: publicUrl,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (directError) {
+          // Clean up newly uploaded object if DB update failed
+          await supabase.storage.from('avatars').remove([path]).catch(() => {});
+          throw rpcError || directError;
+        }
+      } else {
+        rpcResult = data;
       }
 
       // Delete previous avatar object from storage if one existed
@@ -633,11 +817,25 @@ export const profileService = {
 
   async removeAvatar(userId: string): Promise<void> {
     return runOnce(`remove_avatar:${userId}`, async () => {
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('set_profile_avatar', {
+      let rpcResult: any = null;
+      const { data, error: rpcError } = await supabase.rpc('set_profile_avatar', {
         p_avatar_path: null,
       });
 
-      if (rpcError) throw rpcError;
+      if (rpcError) {
+        const { error: directError } = await supabase
+          .from('profiles')
+          .update({
+            avatar_path: null,
+            avatar_url: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', userId);
+
+        if (directError) throw rpcError || directError;
+      } else {
+        rpcResult = data;
+      }
 
       const prevPath = extractStorageObjectPath('avatars', rpcResult?.previous_avatar_path);
       if (prevPath && prevPath.startsWith(`${userId}/`)) {

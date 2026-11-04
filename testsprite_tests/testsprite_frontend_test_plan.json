@@ -1,0 +1,1932 @@
+[
+  {
+    "id": "TC001",
+    "title": "Sign in to the main app",
+    "description": "Verifies that a user can enter valid credentials and reach the main app after signing in.",
+    "category": "Authentication & Account Access",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign in form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main app is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is signed in"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Complete onboarding as a new freelancer",
+    "description": "This verifies that a newly verified user can choose a work mode, finish profile setup, and enter the main dashboard.",
+    "category": "Onboarding and Role Setup",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /onboarding/step1-mode"
+      },
+      {
+        "type": "action",
+        "description": "Select the Find Work mode"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the next onboarding step"
+      },
+      {
+        "type": "action",
+        "description": "Select at least one relevant skill"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the profile setup step"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a profile bio"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a barangay location"
+      },
+      {
+        "type": "action",
+        "description": "Finish onboarding"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Complete two-step registration and land in email verification waiting state",
+    "description": "Verifies that a new user can create an account across both registration steps and reach the email verification waiting screen.",
+    "category": "User Registration and Email Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /signup-step1"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the name field with a new user name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with a unique email address"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the next step"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the phone number field with a valid phone number"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the birth date field with a valid date"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the barangay field with a valid barangay"
+      },
+      {
+        "type": "action",
+        "description": "Submit the registration form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the email verification waiting state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify onboarding has not started yet"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Save onboarding details and enter the app",
+    "description": "This verifies that profile information entered during onboarding is accepted and the user reaches the app after completing setup.",
+    "category": "Onboarding and Role Setup",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /onboarding/step3-profile"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a profile bio"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a barangay location"
+      },
+      {
+        "type": "action",
+        "description": "Finish onboarding"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Verify email with a 6-digit code and continue onboarding",
+    "description": "Verifies that a user can enter a valid verification code, confirm the email, and continue into onboarding.",
+    "category": "User Registration and Email Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /confirm-email"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the 6-digit verification code field with a valid code"
+      },
+      {
+        "type": "action",
+        "description": "Submit the verification code"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify email verification confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify onboarding continuation is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Switch to hiring mode during onboarding",
+    "description": "This verifies that a user can choose the client path in onboarding and proceed into the app.",
+    "category": "Onboarding and Role Setup",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /onboarding/step1-mode"
+      },
+      {
+        "type": "action",
+        "description": "Select the Hire mode"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the next onboarding step"
+      },
+      {
+        "type": "action",
+        "description": "Continue past the skills step"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a profile bio"
+      },
+      {
+        "type": "action",
+        "description": "Fill in a barangay location"
+      },
+      {
+        "type": "action",
+        "description": "Finish onboarding"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main dashboard is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Observe inactivity warning and automatic logout",
+    "description": "This verifies that a logged-in user can trigger the idle timer flow and observe the inactivity warning and automatic logout behavior.",
+    "category": "Role Switching and Session Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open sessions settings"
+      },
+      {
+        "type": "action",
+        "description": "Trigger the idle timer test control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an inactivity warning is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is logged out after inactivity"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "View admin dashboard metrics and navigate to a management area",
+    "description": "This test verifies that an administrator can open the dashboard, review platform overview information, and navigate into a management section from there.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the link to open the administrator dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify platform overview metrics are displayed"
+      },
+      {
+        "type": "action",
+        "description": "Open a management area from the dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a management screen is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Publish a new gig listing",
+    "description": "This verifies that a client can create and publish a gig after filling in the required job details.",
+    "category": "Post a Gig",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /gigs/post"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the gig title"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the gig description"
+      },
+      {
+        "type": "action",
+        "description": "Set a budget amount"
+      },
+      {
+        "type": "action",
+        "description": "Select a pricing model"
+      },
+      {
+        "type": "action",
+        "description": "Select a category"
+      },
+      {
+        "type": "action",
+        "description": "Select required skills"
+      },
+      {
+        "type": "action",
+        "description": "Publish the gig"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Open a gig and review its details",
+    "description": "This verifies that a user can browse from the marketplace into a gig detail view and inspect the listing information.",
+    "category": "Gig Marketplace Browsing and Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /gigs"
+      },
+      {
+        "type": "action",
+        "description": "Open a gig listing"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the gig detail view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the budget and description are shown"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "View a gig and start an application",
+    "description": "A freelancer can open a gig detail page from browsing and begin the application flow successfully.",
+    "category": "Gig Detail and Application Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /(tabs)/gigs"
+      },
+      {
+        "type": "action",
+        "description": "Open a gig detail page from the marketplace"
+      },
+      {
+        "type": "action",
+        "description": "Proceed to the application flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the application form is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Switch active work mode and confirm the change",
+    "description": "This verifies that a logged-in user can change their active mode and see the new mode take effect.",
+    "category": "Role Switching and Session Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open role settings"
+      },
+      {
+        "type": "action",
+        "description": "Change the active work mode"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new active mode is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the mode change is reflected across the current app state"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Review a verification case and decide its outcome",
+    "description": "This test verifies that an administrator can inspect a queued verification item and complete an approve, request changes, or reject decision.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/verification"
+      },
+      {
+        "type": "action",
+        "description": "Open a queued verification case"
+      },
+      {
+        "type": "action",
+        "description": "Review the legitimacy details"
+      },
+      {
+        "type": "action",
+        "description": "Complete a verification decision"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the case is no longer shown as pending"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated decision state is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Show sign-in feedback for invalid credentials",
+    "description": "Verifies that incorrect login details are rejected and the user sees feedback about remaining attempts.",
+    "category": "Authentication & Account Access",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with invalid@example.com"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with invalid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign in form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a sign in error message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify remaining attempts feedback is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Submit a gig application",
+    "description": "A freelancer can enter proposal details and submit an application, and the submission is confirmed.",
+    "category": "Gig Detail and Application Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /gigs/[id]/apply"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the proposal details field with a clear proposal for the gig"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the proposed rate field with a valid amount"
+      },
+      {
+        "type": "action",
+        "description": "Submit the application"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a submission confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Search for gigs from the marketplace",
+    "description": "This verifies that an authenticated user can search the gig marketplace and see filtered results.",
+    "category": "Gig Marketplace Browsing and Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /gigs"
+      },
+      {
+        "type": "action",
+        "description": "Enter a search term"
+      },
+      {
+        "type": "action",
+        "description": "Review the filtered gig results"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify matching gig listings are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Search for a user from the admin users area",
+    "description": "This test verifies that an administrator can open user management and search or filter for a specific user record.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/users"
+      },
+      {
+        "type": "action",
+        "description": "Search for a user record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify matching user records are displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Accept a proposal for an owned gig",
+    "description": "A client can accept a freelancer proposal from the gig management flow and see the agreement move forward.",
+    "category": "Gig Detail and Application Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open a gig detail page for a gig the user owns"
+      },
+      {
+        "type": "action",
+        "description": "Review the applicant list"
+      },
+      {
+        "type": "action",
+        "description": "Accept a proposal"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the agreement or accepted state is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "View and edit the current profile details",
+    "description": "This verifies that a logged-in user can review profile details and open profile editing from the profile screen.",
+    "category": "Profile Management and Public Profiles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the profile section"
+      },
+      {
+        "type": "action",
+        "description": "Open profile editing"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the profile editing screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify current profile details are available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Send a message in a chat thread",
+    "description": "A user can type a message in an open conversation and see it appear in the thread after sending.",
+    "category": "Real-time Messaging",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /chat/[conversationId]"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the message field with a new follow-up message"
+      },
+      {
+        "type": "action",
+        "description": "Send the message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the sent message appears in the thread"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Open and review a user record in admin users",
+    "description": "This test verifies that an administrator can open a user record from the users list and view its account details before making a moderation decision.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/users"
+      },
+      {
+        "type": "action",
+        "description": "Open a user record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user details view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify account management actions are available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "Reach temporary lockout after repeated failed sign-ins",
+    "description": "Verifies that repeated failed login attempts trigger a temporary lockout message before another sign-in attempt is allowed.",
+    "category": "Authentication & Account Access",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with invalid@example.com"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with invalid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign in form"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign in form again after the failed attempt"
+      },
+      {
+        "type": "action",
+        "description": "Submit the sign in form a third time after the failed attempt"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a temporary lockout message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a countdown before another attempt is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "Filter gig listings by category",
+    "description": "This verifies that a user can narrow the marketplace results using category filters and compare listings.",
+    "category": "Gig Marketplace Browsing and Search",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /gigs"
+      },
+      {
+        "type": "action",
+        "description": "Select a category filter"
+      },
+      {
+        "type": "action",
+        "description": "Review the filtered gig cards"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the results list updates to show matching gigs"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC024",
+    "title": "Review applicants for an owned gig",
+    "description": "A client can review applicant proposals for their gig and open a candidate profile or conversation to continue evaluation.",
+    "category": "Gig Detail and Application Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open a gig detail page for a gig the user owns"
+      },
+      {
+        "type": "action",
+        "description": "Review the list of applicants"
+      },
+      {
+        "type": "action",
+        "description": "Open a candidate profile or conversation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify applicant details or conversation context is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC025",
+    "title": "Update profile bio or location and save changes",
+    "description": "This verifies that a logged-in user can update profile details, save them, and see the updated profile.",
+    "category": "Profile Management and Public Profiles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the profile editing screen"
+      },
+      {
+        "type": "action",
+        "description": "Update the bio or location details"
+      },
+      {
+        "type": "action",
+        "description": "Save the profile changes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated profile is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved profile details persist"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC026",
+    "title": "Open a conversation from the inbox",
+    "description": "A user can select a chat thread from the inbox and reach the conversation view tied to that discussion.",
+    "category": "Real-time Messaging",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /(tabs)/messages"
+      },
+      {
+        "type": "action",
+        "description": "Open a conversation from the inbox"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the chat thread is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC027",
+    "title": "Manage skills and return to profile",
+    "description": "This verifies that a logged-in freelancer can adjust skills, save the list, and return to the profile with the updated skills visible.",
+    "category": "Profile Management and Public Profiles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open skills management"
+      },
+      {
+        "type": "action",
+        "description": "Add or adjust skills"
+      },
+      {
+        "type": "action",
+        "description": "Save the skill list"
+      },
+      {
+        "type": "action",
+        "description": "Return to the profile screen"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated skills are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the profile reflects the saved skill list"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC028",
+    "title": "Confirm email using the in-app verification code",
+    "description": "Verifies that a user can open the in-app mail view, obtain the verification code, and complete email verification.",
+    "category": "User Registration and Email Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /confirm-email"
+      },
+      {
+        "type": "action",
+        "description": "Open the in-app mail inbox"
+      },
+      {
+        "type": "action",
+        "description": "View the received verification code"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the 6-digit verification code field with the code from the inbox"
+      },
+      {
+        "type": "action",
+        "description": "Submit the verification code"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify email verification confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC029",
+    "title": "Change the password from settings",
+    "description": "This verifies that a logged-in user can enter the current password, save a compliant new password, and see a confirmation.",
+    "category": "Role Switching and Session Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open password settings"
+      },
+      {
+        "type": "action",
+        "description": "Enter the current password"
+      },
+      {
+        "type": "action",
+        "description": "Enter a compliant new password"
+      },
+      {
+        "type": "action",
+        "description": "Save the password change"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a password change confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the password settings remain accessible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC030",
+    "title": "Search the audit log and inspect an event entry",
+    "description": "This test verifies that an administrator can search the audit trail and open an event entry to review its details.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/log-trail"
+      },
+      {
+        "type": "action",
+        "description": "Search the audit history"
+      },
+      {
+        "type": "action",
+        "description": "Open an event entry"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the event details are displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC031",
+    "title": "Create milestones for an agreement",
+    "description": "A client or freelancer can define milestone amounts and details and save a milestone plan that updates the agreement.",
+    "category": "Agreements, Milestones, and Payment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open an agreement from the activity view"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to milestone setup"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the milestone details with valid milestone information"
+      },
+      {
+        "type": "action",
+        "description": "Submit the milestone plan"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the agreement shows the saved milestone plan"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC032",
+    "title": "See incoming messages while staying in the conversation",
+    "description": "A user can observe a newly arriving message in an open chat and continue the discussion without leaving the thread.",
+    "category": "Real-time Messaging",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /chat/[conversationId]"
+      },
+      {
+        "type": "action",
+        "description": "Wait for a new incoming message to appear"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new message is visible in the thread"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC033",
+    "title": "Request a password reset code",
+    "description": "Verifies that a user can request a password reset after entering an email or username.",
+    "category": "Password Recovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /forgot-password"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the username or email field with a valid account identifier"
+      },
+      {
+        "type": "action",
+        "description": "Request a reset code"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the reset code request confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the password recovery flow remains available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC034",
+    "title": "Review agreement milestones and payment status",
+    "description": "A user can open an agreement and inspect milestone progress and payment tracking before continuing to management tasks.",
+    "category": "Agreements, Milestones, and Payment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to the activity tab"
+      },
+      {
+        "type": "action",
+        "description": "Open an agreement from the activity view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify milestone and payment status information is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC035",
+    "title": "Review recent activity and open a related item",
+    "description": "This verifies that a logged-in user can review recent proposals, contracts, and milestone updates from activity and open a relevant item for more detail.",
+    "category": "Notifications and Activity Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the activity section"
+      },
+      {
+        "type": "action",
+        "description": "Open a recent activity item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the activity item detail is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify recent activity content is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC036",
+    "title": "Review sessions and revoke one active session",
+    "description": "This verifies that a logged-in user can inspect active sessions and revoke one session so the list refreshes.",
+    "category": "Role Switching and Session Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open sessions settings"
+      },
+      {
+        "type": "action",
+        "description": "Revoke one active session"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the session list refreshes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the revoked session is no longer present"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC037",
+    "title": "Reset password with a valid code",
+    "description": "Verifies that a user can submit a valid reset code and set a new password successfully.",
+    "category": "Password Recovery",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /forgot-password"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the reset code field with a valid code"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the new password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Submit the password reset form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify password changed confirmation is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user can return to sign in"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC038",
+    "title": "Record an external payment on an agreement",
+    "description": "A user can add an external payment record to an agreement and see the payment reflected in the agreement history.",
+    "category": "Agreements, Milestones, and Payment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open an agreement from the activity view"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to payment reporting"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the payment details with valid payment information"
+      },
+      {
+        "type": "action",
+        "description": "Submit the payment record"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payment record is reflected in the agreement"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC039",
+    "title": "Review unread notifications and open a destination",
+    "description": "This verifies that a logged-in user can review unread alerts from notifications and open one linked destination.",
+    "category": "Notifications and Activity Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the notifications section"
+      },
+      {
+        "type": "action",
+        "description": "Open a notification destination"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the linked destination is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify unread notification content is no longer blocking review"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC040",
+    "title": "Return to the admin dashboard after reviewing logs",
+    "description": "This test verifies that an administrator can leave the audit log screen and return to the dashboard without losing access to admin navigation.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/log-trail"
+      },
+      {
+        "type": "action",
+        "description": "Return to the administrator dashboard"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify admin shortcuts remain available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC041",
+    "title": "Open password recovery from sign in",
+    "description": "Verifies that a user can move from the login screen into the password recovery flow.",
+    "category": "Authentication & Account Access",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Open the password recovery flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the password recovery screen is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC042",
+    "title": "Submit a review for a completed agreement",
+    "description": "A user can rate and comment on a completed agreement and see the review saved.",
+    "category": "Agreements, Milestones, and Payment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open a completed agreement from the activity view"
+      },
+      {
+        "type": "action",
+        "description": "Open the review flow"
+      },
+      {
+        "type": "action",
+        "description": "Select a star rating"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the review comment with a helpful summary"
+      },
+      {
+        "type": "action",
+        "description": "Submit the review"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved review is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC043",
+    "title": "Track agreement and payment updates from activity",
+    "description": "This verifies that a logged-in user can observe agreement and payment status changes in activity and continue to the related workflow.",
+    "category": "Notifications and Activity Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the activity section"
+      },
+      {
+        "type": "action",
+        "description": "Open the agreement or payment related item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify agreement or payment status details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the related workflow entry is available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC044",
+    "title": "Open registration from sign in",
+    "description": "Verifies that a user can move from the login screen into the registration flow.",
+    "category": "Authentication & Account Access",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Open the registration flow"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the first registration step is displayed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC045",
+    "title": "Create and confirm a backup action from admin controls",
+    "description": "This test verifies that an administrator can review available backups, create a new backup, and confirm a restore action from the backup management screen.",
+    "category": "Administrative Governance",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_USER}} into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Fill in {{LOGIN_PASSWORD}} into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /admin/backups"
+      },
+      {
+        "type": "action",
+        "description": "Review the available backups"
+      },
+      {
+        "type": "action",
+        "description": "Create a new backup"
+      },
+      {
+        "type": "action",
+        "description": "Restore a selected backup"
+      },
+      {
+        "type": "action",
+        "description": "Confirm the restore action"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the backup state is updated"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the restored backup appears in the backup list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC046",
+    "title": "Submit a payment dispute",
+    "description": "A user can report an external payment as disputed with a reason and see the payment marked accordingly.",
+    "category": "Agreements, Milestones, and Payment Tracking",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open an agreement from the activity view"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to payment dispute flow"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the dispute reason with a valid explanation"
+      },
+      {
+        "type": "action",
+        "description": "Submit the dispute"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the payment is marked as disputed"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC047",
+    "title": "View a public profile and inspect shared details",
+    "description": "This verifies that a user can open a public profile and review shared skills, ratings, and portfolio items.",
+    "category": "Profile Management and Public Profiles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open a public profile view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify public profile details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify public skills, ratings, or portfolio content is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC048",
+    "title": "Reject taken registration details and allow correction",
+    "description": "Verifies that duplicate registration details are flagged and the user can correct them before proceeding.",
+    "category": "User Registration and Email Verification",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /signup-step1"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the name field with a taken user name"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with a taken email address"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with a valid password"
+      },
+      {
+        "type": "action",
+        "description": "Continue to the next step"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify validation feedback is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user can correct the registration details"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC049",
+    "title": "See validation feedback when required gig fields are missing",
+    "description": "This verifies that incomplete gig creation is blocked and validation feedback appears before publishing.",
+    "category": "Post a Gig",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /gigs/post"
+      },
+      {
+        "type": "action",
+        "description": "Attempt to publish the gig without completing required fields"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify validation errors are visible"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC050",
+    "title": "Validate incomplete application details",
+    "description": "A freelancer sees validation feedback when required proposal information is missing or invalid, and can correct it before submitting.",
+    "category": "Gig Detail and Application Workflow",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /(auth)/login"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /gigs/[id]/apply"
+      },
+      {
+        "type": "action",
+        "description": "Submit the application"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify validation feedback is visible"
+      }
+    ],
+    "priority": "Low"
+  }
+]

@@ -83,20 +83,12 @@ export default function ConfirmEmailScreen() {
     let mounted = true;
     const targetEmail = (params.email || '').trim().toLowerCase();
 
-    // Check if the current session actually matches the email being confirmed and is confirmed
+    // If a lingering session belongs to a different user, clear it so it doesn't hijack the flow
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted || !session?.user) return;
       const sessionEmail = (session.user.email || '').trim().toLowerCase();
-      // If a lingering session belongs to a different user, clear it so it doesn't hijack the flow
       if (targetEmail && sessionEmail !== targetEmail) {
         supabase.auth.signOut({ scope: 'local' }).catch(() => {});
-        return;
-      }
-      // Only auto-advance if THIS email was already confirmed (e.g. via email link in another tab)
-      if (sessionEmail === targetEmail && Boolean(session.user.email_confirmed_at)) {
-        await authService.updateProfile(session.user.id, { onboarding_complete: false }).catch(() => {});
-        await refreshProfile(session.user);
-        router.replace('/(onboarding)/step1-mode');
       }
     }).catch(() => undefined);
 

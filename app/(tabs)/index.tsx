@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -80,8 +80,16 @@ export default function HomeScreen() {
     }
   }, [userId, profile?.active_mode]);
 
+  const hasLoadedRef = useRef(false);
+  const lastActiveModeRef = useRef<string | null | undefined>(profile?.active_mode);
+
+  if (lastActiveModeRef.current !== profile?.active_mode) {
+    lastActiveModeRef.current = profile?.active_mode;
+    hasLoadedRef.current = false;
+  }
+
   const loadHomeData = useCallback(async (isRefresh = false) => {
-    if (!isRefresh) setLoading(true);
+    if (!isRefresh && !hasLoadedRef.current) setLoading(true);
     setLoadError(null);
     setNotificationLoadError(null);
     try {
@@ -111,6 +119,7 @@ export default function HomeScreen() {
         setCategories(browseCats);
         setMyReviews(revs);
       }
+      hasLoadedRef.current = true;
     } catch (err: any) {
       setLoadError(mapSqlErrorToFriendlyMessage(err, 'Could not load gigs. Please check your connection and try again.'));
     } finally {
@@ -353,7 +362,7 @@ export default function HomeScreen() {
           />
 
           <View style={styles.heroTop}>
-            <Avatar name={displayName} imageUri={profile?.avatar_path} size={46} onHero />
+            <Avatar name={displayName} imageUri={profile?.avatar_path || profile?.avatar_url} size={46} onHero />
             <View style={styles.greetingCol}>
               <Text style={[theme.type.small, { color: theme.colors.heroMuted }]}>Maayong adlaw,</Text>
               <Text style={[styles.name, { color: theme.colors.heroText }]} numberOfLines={1}>
@@ -578,7 +587,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {!profile?.avatar_path && (
+          {!profile?.avatar_path && !profile?.avatar_url && (
             <AlertBox
               tone="info"
               icon="camera-outline"

@@ -688,7 +688,7 @@ export default function EditProfileScreen() {
               <View style={styles.desktopLeftCol}>
                 <PhotoUploadCard
                   displayName={displayName || profile?.display_name || ''}
-                  avatarPath={profile?.avatar_path}
+                  avatarPath={profile?.avatar_path || profile?.avatar_url}
                   photoBusy={photoBusy}
                   onPickLibrary={() => handlePickAvatar('library')}
                   onPickCamera={() => handlePickAvatar('camera')}
@@ -712,7 +712,7 @@ export default function EditProfileScreen() {
               />
               <PhotoUploadCard
                 displayName={displayName || profile?.display_name || ''}
-                avatarPath={profile?.avatar_path}
+                avatarPath={profile?.avatar_path || profile?.avatar_url}
                 photoBusy={photoBusy}
                 onPickLibrary={() => handlePickAvatar('library')}
                 onPickCamera={() => handlePickAvatar('camera')}

@@ -10,6 +10,7 @@ import { OfflineBanner } from '../components/ui/OfflineBanner';
 import { ToastProvider } from '../components/ui/Toast';
 import { ConfirmDialogProvider } from '../components/ui/ConfirmDialog';
 import { SessionTimeoutModal } from '../components/ui/SessionTimeoutModal';
+import { ProjectMailInbox } from '../components/security/ProjectMailInbox';
 import { sessionService } from '../services/sessions';
 import { ensureRealtimeConnected } from '../lib/supabase';
 import { adminService } from '../services/admin';
@@ -58,8 +59,8 @@ function RootNavigation() {
             if (!inAdminGroup) {
               router.replace('/admin/dashboard');
             }
-          } else if (profile.email_verified === false) {
-            if (!inVerifyOtp) {
+          } else if (profile.email_verified === false && !profile.onboarding_complete) {
+            if (!inVerifyOtp && !inConfirmEmail) {
               router.replace({
                 pathname: '/(auth)/verify-otp',
                 params: { userId: user.id, email: user.email },
@@ -76,8 +77,8 @@ function RootNavigation() {
             }
           }
         }).catch(() => {
-          if (profile.email_verified === false) {
-            if (!inVerifyOtp) {
+          if (profile.email_verified === false && !profile.onboarding_complete) {
+            if (!inVerifyOtp && !inConfirmEmail) {
               router.replace({
                 pathname: '/(auth)/verify-otp',
                 params: { userId: user.id, email: user.email },
@@ -216,6 +217,7 @@ function RootNavigation() {
         <Stack.Screen name="(onboarding)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
+      <ProjectMailInbox />
       <SessionTimeoutModal
         visible={sessionWarningVisible}
         secondsRemaining={warningSecondsRemaining}

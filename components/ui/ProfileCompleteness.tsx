@@ -51,8 +51,10 @@ export const ProfileCompletenessCard: React.FC<ProfileCompletenessCardProps> = (
 
   if (!completeness) return null;
 
-  const { percent, complete, missing_items } = completeness;
-  const firstMissing = missing_items && missing_items.length > 0 ? missing_items[0] : null;
+  const percent = Number(completeness.percent ?? (completeness as any).percentage ?? (completeness as any).score ?? 0);
+  const complete = Boolean(completeness.complete ?? (completeness as any).is_complete ?? (percent >= 100));
+  const missing_items = Array.isArray(completeness.missing_items) ? completeness.missing_items : [];
+  const firstMissing = missing_items.length > 0 ? missing_items[0] : null;
 
   return (
     <Card

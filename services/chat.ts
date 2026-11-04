@@ -104,20 +104,49 @@ export const chatService = {
   },
 
   async getConversation(conversationId: string): Promise<ConversationItem | null> {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          application_id,
+          client_id,
+          freelancer_id,
+          created_at,
+          updated_at,
+          closed_at,
+          closed_reason,
+          client:profiles!conversations_client_id_fkey(id, display_name, avatar_url),
+          freelancer:profiles!conversations_freelancer_id_fkey(id, display_name, avatar_url)
+        `)
+        .eq('id', conversationId)
+        .maybeSingle();
+
+      if (!error && data) {
+        const row = data as any;
+        return {
+          ...row,
+          client: row.client
+            ? {
+                id: row.client.id,
+                display_name: row.client.display_name,
+                avatar_path: row.client.avatar_url || null,
+              }
+            : undefined,
+          freelancer: row.freelancer
+            ? {
+                id: row.freelancer.id,
+                display_name: row.freelancer.display_name,
+                avatar_path: row.freelancer.avatar_url || null,
+              }
+            : undefined,
+        };
+      }
+    } catch {}
+
     const { data, error } = await supabase
       .from('conversations')
-      .select(`
-        id,
-        application_id,
-        client_id,
-        freelancer_id,
-        created_at,
-        updated_at,
-        closed_at,
-        closed_reason,
-        client:profiles!conversations_client_id_fkey(id, display_name, avatar_path),
-        freelancer:profiles!conversations_freelancer_id_fkey(id, display_name, avatar_path)
-      `)
+      .select('*')
       .eq('id', conversationId)
       .maybeSingle();
 
@@ -126,17 +155,43 @@ export const chatService = {
   },
 
   async getMessages(conversationId: string): Promise<MessageItem[]> {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          id,
+          conversation_id,
+          sender_id,
+          content,
+          created_at,
+          is_system,
+          sender:profiles(id, display_name, avatar_url)
+        `)
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (!error && data) {
+        return (data || []).map((row: any) => ({
+          id: row.id,
+          conversation_id: row.conversation_id,
+          sender_id: row.sender_id,
+          content: row.content,
+          created_at: row.created_at,
+          is_system: row.is_system,
+          sender: row.sender
+            ? {
+                id: row.sender.id,
+                display_name: row.sender.display_name,
+                avatar_path: row.sender.avatar_url || null,
+              }
+            : undefined,
+        }));
+      }
+    } catch {}
+
     const { data, error } = await supabase
       .from('messages')
-      .select(`
-        id,
-        conversation_id,
-        sender_id,
-        content,
-        created_at,
-        is_system,
-        sender:profiles(id, display_name, avatar_path)
-      `)
+      .select('*')
       .eq('conversation_id', conversationId)
       .order('created_at', { ascending: true });
 
@@ -192,7 +247,7 @@ export const chatService = {
 
           const { data } = await supabase
             .from('profiles')
-            .select('id, display_name, avatar_path')
+            .select('id, display_name, avatar_url')
             .eq('id', payload.new.sender_id)
             .maybeSingle();
 
@@ -203,7 +258,13 @@ export const chatService = {
             content: payload.new.content,
             created_at: payload.new.created_at,
             is_system: payload.new.is_system,
-            sender: data || undefined,
+            sender: data
+              ? {
+                  id: data.id,
+                  display_name: data.display_name,
+                  avatar_path: (data as any).avatar_url || null,
+                }
+              : undefined,
           };
           onMessage(newMsg);
         }

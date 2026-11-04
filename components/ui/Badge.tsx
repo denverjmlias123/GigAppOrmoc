@@ -28,7 +28,7 @@ interface BadgeProps {
   textColor?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ status, label, bgColor, textColor }) => {
+export const Badge: React.FC<BadgeProps> = React.memo(function Badge({ status, label, bgColor, textColor }) {
   const theme = useAppTheme();
   const c = theme.colors;
 
@@ -84,7 +84,7 @@ export const Badge: React.FC<BadgeProps> = ({ status, label, bgColor, textColor 
       <Text style={[styles.label, { color: colors.text }]}>{getStatusLabel()}</Text>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   pill: {

@@ -223,7 +223,7 @@ export default function OnboardingStep3ProfileScreen() {
         area: skip ? '' : finalArea,
       });
 
-      await authService.completeOnboarding();
+      await authService.completeOnboarding(profile?.active_mode || (isHire ? 'hire' : 'find_work'));
       await refreshProfile();
       router.replace('/(tabs)');
     } catch (err: any) {
