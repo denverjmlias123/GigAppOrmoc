@@ -63,6 +63,17 @@ export async function fetchWithTimeout(
       timeoutErr.code = 'TIMEOUT';
       throw timeoutErr;
     }
+    if (
+      err?.message?.includes('Network request failed') ||
+      err?.message?.includes('Failed to fetch') ||
+      err?.name === 'TypeError'
+    ) {
+      if (typeof navigator !== 'undefined' && (navigator as any).onLine === false) {
+        err.code = 'OFFLINE';
+      } else {
+        err.code = err.code || 'NETWORK_ERROR';
+      }
+    }
     throw err;
   } finally {
     clearTimeout(timer);
@@ -96,14 +107,21 @@ let refreshSessionInFlight: Promise<boolean> | null = null;
 let sessionExpiredHandler: (() => Promise<void> | void) | null = null;
 
 /** Register the app-level cleanup used when Supabase confirms that refresh credentials are invalid. */
-export function registerSessionExpiredHandler(cb: (() => Promise<void> | void) | null) {
+export function registerSessionExpiredHandler(cb: (() => Promise<void> | void) | null): void {
   sessionExpiredHandler = cb;
 }
 
 function isExpiredAuthError(error: any): boolean {
   const message = String(error?.message || '');
-  return error?.status === 401 || error?.code === '401' || error?.code === 'PGRST301' ||
-    /jwt (?:has )?expired|token is expired/i.test(message);
+  return (
+    error?.status === 401 ||
+    error?.code === '401' ||
+    error?.code === 'PGRST301' ||
+    /jwt (?:has )?expired|token is expired/i.test(message) ||
+    message.includes('Unauthorized') ||
+    message.includes('JWT') ||
+    message.includes('jwt')
+  );
 }
 
 function isTerminalRefreshError(error: any): boolean {
@@ -112,11 +130,13 @@ function isTerminalRefreshError(error: any): boolean {
   return status === 400 || status === 401 || code.includes('refresh_token') || code === 'session_not_found';
 }
 
-async function notifySessionExpired(): Promise<void> {
-  try {
-    await sessionExpiredHandler?.();
-  } catch {
-    // Expiration cleanup must not replace the original request error.
+export async function notifySessionExpired(): Promise<void> {
+  if (sessionExpiredHandler) {
+    try {
+      await sessionExpiredHandler();
+    } catch (e) {
+      console.warn('Session expired notification handler failed:', e);
+    }
   }
 }
 
@@ -177,6 +197,12 @@ const preAuthRpcs = new Set([
   'rpc_record_login_success',
   'rpc_reset_password_with_otp',
   'rpc_log_underage_attempt',
+  'create_password_reset_otp',
+  'verify_password_reset_otp',
+  'verify_and_reset_password',
+  'create_signup_otp',
+  'verify_signup_otp',
+  'resolve_login_identifier',
 ]);
 
 export interface RpcEnvelope<T = Record<string, any>> {
@@ -196,18 +222,22 @@ export async function callRpc<T = RpcEnvelope>(
     const clientToUse = isPreAuth ? anonClient : supabase;
     let { data, error } = await clientToUse.rpc(fnName, params);
 
-    // Only refresh and retry with the authenticated client. Falling back to anonClient
-    // can never repair an expired user JWT and can hide auth/configuration errors.
+    // If an authenticated RPC call encounters a 401/expired JWT, refresh the session and retry once
     if (!isPreAuth && error && isExpiredAuthError(error)) {
       const refreshed = await refreshSessionSingleFlight();
       if (refreshed) {
-        const retry = await supabase.rpc(fnName, params);
-        data = retry.data;
-        error = retry.error;
+        const retryResult = await supabase.rpc(fnName, params);
+        data = retryResult.data;
+        error = retryResult.error;
+      } else {
+        void notifySessionExpired();
       }
     }
 
     if (error) {
+      if (!isPreAuth && isExpiredAuthError(error)) {
+        void notifySessionExpired();
+      }
       return {
         ok: false,
         code: error.code || 'RPC_ERROR',

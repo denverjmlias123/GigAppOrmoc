@@ -16,7 +16,7 @@ import { ensureRealtimeConnected } from '../lib/supabase';
 import { adminService } from '../services/admin';
 
 function RootNavigation() {
-  const { user, profile, loading, isOffline, signOut } = useAuth();
+  const { user, profile, loading, isOffline, signOut, adminRole } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const theme = useAppTheme();
@@ -26,6 +26,7 @@ function RootNavigation() {
   useEffect(() => {
     if (loading) return;
 
+    let isCurrent = true;
     const segList = segments as string[];
     const inAuthGroup = segList[0] === '(auth)';
     const inOnboardingGroup = segList[0] === '(onboarding)';
@@ -39,65 +40,78 @@ function RootNavigation() {
     if (inPasswordReset || inConfirmEmail || inVerifyOtp || inSignUp) return;
 
     if (!user) {
-      // User is not authenticated -> route to welcome if trying to access tabs or onboarding
+      // User is not authenticated -> route to welcome if trying to access tabs, onboarding, or admin
       if (!inAuthGroup) {
         router.replace('/(auth)/welcome');
       }
-    } else if (!profile) {
+      return;
+    }
+
+    if (!profile) {
       // User session exists locally but profile was deleted or is missing, only force logout if strictly online and not onboarding
       if (!inAuthGroup && !inOnboardingGroup && !isOffline) {
         signOut().catch(() => {});
         router.replace('/(auth)/welcome');
       }
-    } else {
-      // User is authenticated and profile exists
-      if (profile.must_change_password) {
-        if (segList[0] !== 'settings' || !segList.includes('password')) router.replace('/settings/password');
-      } else {
-        adminService.isSuperAdmin().then((isSuper) => {
-          if (isSuper) {
-            if (!inAdminGroup) {
-              router.replace('/admin/dashboard');
-            }
-          } else if (profile.email_verified === false && !profile.onboarding_complete) {
-            if (!inVerifyOtp && !inConfirmEmail) {
-              router.replace({
-                pathname: '/(auth)/verify-otp',
-                params: { userId: user.id, email: user.email },
-              });
-            }
-          } else if (!profile.active_mode || !profile.onboarding_complete) {
-            if (!inOnboardingGroup) {
-              router.replace('/(onboarding)/step1-mode');
-            }
-          } else {
-            const inStep1 = segList.includes('step1-mode');
-            if ((inAuthGroup || (inOnboardingGroup && !inStep1)) && !inAdminGroup) {
-              router.replace('/(tabs)');
-            }
-          }
-        }).catch(() => {
-          if (profile.email_verified === false && !profile.onboarding_complete) {
-            if (!inVerifyOtp && !inConfirmEmail) {
-              router.replace({
-                pathname: '/(auth)/verify-otp',
-                params: { userId: user.id, email: user.email },
-              });
-            }
-          } else if (!profile.active_mode || !profile.onboarding_complete) {
-            if (!inOnboardingGroup) {
-              router.replace('/(onboarding)/step1-mode');
-            }
-          } else {
-            const inStep1 = segList.includes('step1-mode');
-            if ((inAuthGroup || (inOnboardingGroup && !inStep1)) && !inAdminGroup) {
-              router.replace('/(tabs)');
-            }
-          }
-        });
-      }
+      return;
     }
-  }, [user, profile, loading, isOffline, segments]);
+
+    // User is authenticated and profile exists
+    if (profile.must_change_password) {
+      if (segList[0] !== 'settings' || !segList.includes('password')) {
+        router.replace('/settings/password');
+      }
+      return;
+    }
+
+    const checkNavigation = async () => {
+      let isSuper = adminRole === 'super_admin';
+      if (!isSuper && adminRole === null) {
+        try {
+          isSuper = await adminService.isSuperAdmin();
+        } catch {
+          isSuper = false;
+        }
+      }
+      if (!isCurrent) return;
+
+      if (isSuper) {
+        if (!inAdminGroup) {
+          router.replace('/admin/dashboard');
+        }
+        return;
+      }
+
+      if (inAdminGroup) {
+        router.replace('/(tabs)');
+        return;
+      }
+
+      if (profile.email_verified === false && !profile.onboarding_complete) {
+        if (!inVerifyOtp && !inConfirmEmail) {
+          router.replace({
+            pathname: '/(auth)/verify-otp',
+            params: { userId: user.id, email: user.email },
+          });
+        }
+      } else if (!profile.active_mode || !profile.onboarding_complete) {
+        if (!inOnboardingGroup) {
+          router.replace('/(onboarding)/step1-mode');
+        }
+      } else {
+        const inStep1 = segList.includes('step1-mode');
+        if ((inAuthGroup || (inOnboardingGroup && !inStep1)) && !inAdminGroup) {
+          router.replace('/(tabs)');
+        }
+      }
+    };
+
+    void checkNavigation();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [user, profile, loading, isOffline, segments, adminRole]);
 
   useEffect(() => {
     if (!user?.id || isOffline) {

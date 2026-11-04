@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
-import { supabase } from '../lib/supabase';
+import { supabase, notifySessionExpired } from '../lib/supabase';
 import { createRequestId } from '../lib/errors';
 
 export const INACTIVITY_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes per IAS 1 requirement E
@@ -59,6 +59,8 @@ export const sessionService = {
     const id = await this.getCurrentSessionId();
     if (!id) {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return false;
         await this.startSession();
         return true;
       } catch {
@@ -67,12 +69,8 @@ export const sessionService = {
     }
     const alive = await this.heartbeat();
     if (!alive) {
-      try {
-        await this.startSession();
-        return true;
-      } catch {
-        return false;
-      }
+      // Server-side session has expired or been revoked; do not silently resurrect a dead session
+      return false;
     }
     return true;
   },
@@ -91,12 +89,13 @@ export const sessionService = {
   async getInactivityRemainingMs(): Promise<number> {
     const id = await this.getCurrentSessionId();
     if (!id) return INACTIVITY_TIMEOUT_MS;
+    const now = Date.now();
     const lastActivity = Number(await AsyncStorage.getItem(LAST_ACTIVITY_KEY));
-    if (!Number.isFinite(lastActivity) || lastActivity <= 0) {
-      await AsyncStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
+    if (!Number.isFinite(lastActivity) || lastActivity <= 0 || lastActivity > now) {
+      await AsyncStorage.setItem(LAST_ACTIVITY_KEY, String(now));
       return INACTIVITY_TIMEOUT_MS;
     }
-    const elapsed = Date.now() - lastActivity;
+    const elapsed = now - lastActivity;
     return Math.max(0, INACTIVITY_TIMEOUT_MS - elapsed);
   },
 
@@ -105,21 +104,28 @@ export const sessionService = {
     if (!id) return false;
     const lastActivity = Number(await AsyncStorage.getItem(LAST_ACTIVITY_KEY));
     if (Number.isFinite(lastActivity) && lastActivity > 0 && Date.now() - lastActivity >= INACTIVITY_TIMEOUT_MS) {
-      const { error: endError } = await supabase.rpc('end_session', { p_session_id: id, p_reason: 'expired' });
-      if (endError) throw endError;
+      try {
+        const { error: endError } = await supabase.rpc('end_session', { p_session_id: id, p_reason: 'expired' });
+        if (endError) throw endError;
+      } catch {
+        // Non-blocking best-effort remote notification
+      }
       await AsyncStorage.multiRemove([SESSION_STORAGE_KEY, LAST_ACTIVITY_KEY]);
+      void notifySessionExpired();
       return false;
     }
     const { data, error } = await supabase.rpc('heartbeat_session', { p_session_id: id });
     if (error) {
       if (String(error.message || '').includes('session_not_found')) {
         await AsyncStorage.multiRemove([SESSION_STORAGE_KEY, LAST_ACTIVITY_KEY]);
+        void notifySessionExpired();
         return false;
       }
       throw error;
     }
     if (data?.active !== true) {
       await AsyncStorage.multiRemove([SESSION_STORAGE_KEY, LAST_ACTIVITY_KEY]);
+      void notifySessionExpired();
       return false;
     }
     return true;

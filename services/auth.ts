@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase, anonClient } from '../lib/supabase';
 import { strings } from '../constants/strings';
 import * as passwordPolicy from '../utils/passwordPolicy';
 import * as Linking from 'expo-linking';
@@ -90,12 +90,18 @@ export function normalizeEmail(email: string): string {
   return (email || '').trim().toLowerCase();
 }
 
-export function validateEmailInput(rawEmail: string): { valid: boolean; message?: string } {
+export function validateEmailInput(rawEmail: string): { valid: boolean; message?: string; reason?: 'format' | 'typo' } {
   const normalized = normalizeEmail(rawEmail);
-  // Local accounts accepted: any non-empty text of at least 3 characters.
-  // Real email format is not required because OTP is copy-paste in-app, not email delivery.
-  if (!normalized || normalized.length < 3) {
-    return { valid: false, message: strings.auth.invalidEmailFormat };
+  if (!normalized || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalized)) {
+    return { valid: false, message: strings.auth.invalidEmailFormat, reason: 'format' };
+  }
+  const domain = normalized.split('@')[1] || '';
+  if (COMMON_EMAIL_DOMAIN_TYPOS.has(domain)) {
+    return {
+      valid: false,
+      message: strings.auth.invalidEmailFormat,
+      reason: 'typo',
+    };
   }
   return { valid: true };
 }
@@ -138,10 +144,20 @@ async function callLoginGuard(action: 'check' | 'failure' | 'success', email: st
   try {
     const { data, error } = await supabase.functions.invoke('login-guard', { body: { action, email } });
     if (error) {
+      if (action === 'check') {
+        const guardError: any = new Error('Security verification service is temporarily unavailable. Please try again.');
+        guardError.code = 'LOGIN_GUARD_UNAVAILABLE';
+        throw guardError;
+      }
       return { locked: false, attempts_left: 3, seconds_left: 0 };
     }
     if (data?.error) {
       if (data.error === 'server_unavailable' || data.error === 'method_not_allowed') {
+        if (action === 'check') {
+          const guardError: any = new Error('Security verification service is temporarily unavailable. Please try again.');
+          guardError.code = 'LOGIN_GUARD_UNAVAILABLE';
+          throw guardError;
+        }
         return { locked: false, attempts_left: 3, seconds_left: 0 };
       }
       const guardError: any = new Error(strings.errors.generic);
@@ -150,7 +166,12 @@ async function callLoginGuard(action: 'check' | 'failure' | 'success', email: st
     }
     return data ?? {};
   } catch (err: any) {
-    if (err?.code === 'ACCOUNT_LOCKED') throw err;
+    if (err?.code === 'ACCOUNT_LOCKED' || err?.code === 'LOGIN_GUARD_UNAVAILABLE') throw err;
+    if (action === 'check') {
+      const guardError: any = new Error('Security verification service is temporarily unavailable. Please try again.');
+      guardError.code = 'LOGIN_GUARD_UNAVAILABLE';
+      throw guardError;
+    }
     return { locked: false, attempts_left: 3, seconds_left: 0 };
   }
 }
@@ -337,34 +358,42 @@ export const authService = {
     }
 
     signOutInFlight = (async () => {
-      // End remote session before clearing the local token so the RPC call has authenticated JWT
+      // 1. End remote tracked session before clearing tokens so the RPC has authenticated JWT
       try {
         const currentSessionId = await sessionService.getCurrentSessionId();
         if (currentSessionId) {
           if (options?.scope === 'global') {
-            await sessionService.endOtherSessions(currentSessionId).catch(() => undefined);
+            try {
+              await sessionService.endOtherSessions(currentSessionId);
+            } catch (err) {
+              console.warn('Remote endOtherSessions warning:', err);
+            }
           }
-          await sessionService.endCurrentSession(options?.scope === 'global' ? 'revoked' : 'logout', currentSessionId).catch(() => undefined);
+          try {
+            await sessionService.endCurrentSession(options?.scope === 'global' ? 'revoked' : 'logout', currentSessionId);
+          } catch (err) {
+            console.warn('Remote endCurrentSession warning:', err);
+          }
         }
-      } catch {
-        // Best-effort remote revocation; proceed with local signOut
+      } catch (err) {
+        console.warn('Remote session revocation warning:', err);
       }
 
       try {
-        // 1. Always clear local session first so logout works even when offline
+        // 2. Global revocation on Supabase Auth server if requested, BEFORE clearing local auth token
+        if (options?.scope === 'global') {
+          try {
+            await supabase.auth.signOut({ scope: 'global' });
+          } catch (globalErr) {
+            console.warn('Supabase global signOut warning:', globalErr);
+          }
+        }
+
+        // 3. Always clear local session so logout works even when offline
         try {
           await supabase.auth.signOut({ scope: 'local' });
         } catch (localErr: any) {
           console.warn('Supabase local signOut warning:', localErr?.message);
-        }
-
-        // 2. Best-effort global revoke when requested (never blocks local logout if offline)
-        if (options?.scope === 'global') {
-          try {
-            await supabase.auth.signOut({ scope: 'global' });
-          } catch {
-            // Best-effort server revoke; local session is already cleared
-          }
         }
       } finally {
         signOutInFlight = null;
@@ -389,9 +418,9 @@ export const authService = {
 
     resetPasswordInFlight = true;
     try {
-      const { data, error } = await supabase.rpc('create_password_reset_otp', { p_email: normalizedEmail });
-      if (!error && data?.ok && data?.otp) {
-        return { devOtp: String(data.otp) };
+      const { data, error } = await anonClient.rpc('create_password_reset_otp', { p_email: normalizedEmail });
+      if (error) {
+        throw error;
       }
       if (data && data.ok === false) {
         const appErr: any = new Error(data.message || 'No account found with this email.');
@@ -399,11 +428,22 @@ export const authService = {
         throw appErr;
       }
 
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-        redirectTo: Linking.createURL('reset-password'),
-      });
-      if (resetErr) throw resetErr;
-      return { devOtp: null };
+      const otpCode = data?.otp ? String(data.otp) : null;
+      if (otpCode) {
+        try {
+          await anonClient.from('project_inbox_messages').insert({
+            recipient_email: normalizedEmail,
+            purpose: 'password_reset',
+            subject: 'GigOrmoc Password Reset Code',
+            otp_code_display: otpCode,
+            expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+          });
+        } catch {
+          // Non-blocking inbox notification fallback
+        }
+      }
+
+      return { devOtp: otpCode };
     } finally {
       resetPasswordInFlight = false;
     }
@@ -456,7 +496,7 @@ export const authService = {
 
   async createSignupOtp(userId?: string, email?: string): Promise<string> {
     const normEmail = email ? normalizeEmail(email) : '';
-    const { data, error } = await supabase.rpc('create_signup_otp', {
+    const { data, error } = await anonClient.rpc('create_signup_otp', {
       p_user_id: userId || null,
       p_email: normEmail || null,
     });
@@ -467,7 +507,7 @@ export const authService = {
     // Mirror into project_inbox_messages so demo ProjectMailInbox can display it immediately
     if (otpCode && (userId || normEmail)) {
       try {
-        await supabase.from('project_inbox_messages').insert({
+        await anonClient.from('project_inbox_messages').insert({
           user_id: userId || null,
           recipient_email: normEmail || '',
           purpose: 'signup_verification',
@@ -489,7 +529,7 @@ export const authService = {
       err.code = 'INVALID_OTP';
       throw err;
     }
-    const { data, error } = await supabase.rpc('verify_signup_otp', {
+    const { data, error } = await anonClient.rpc('verify_signup_otp', {
       p_user_id: userId || null,
       p_otp: cleanOtp,
       p_email: email ? normalizeEmail(email) : null,
@@ -535,7 +575,7 @@ export const authService = {
     if (!trimmed) return '';
     if (trimmed.includes('@')) return normalizeEmail(trimmed);
     try {
-      const { data, error } = await supabase.rpc('resolve_login_identifier', { p_identifier: trimmed });
+      const { data, error } = await anonClient.rpc('resolve_login_identifier', { p_identifier: trimmed });
       if (error || !data) return trimmed;
       return String(data);
     } catch {
@@ -552,34 +592,19 @@ export const authService = {
       throw err;
     }
 
-    try {
-      const { data, error } = await supabase.rpc('verify_password_reset_otp', {
-        p_email: normalizedEmail,
-        p_otp: cleanToken,
-      });
-      if (!error && data?.ok) {
-        return { user: { email: normalizedEmail } };
-      }
-      if (data && data.ok === false) {
-        const otpErr: any = new Error(data.message || strings.auth.otpInvalidOrExpired);
-        otpErr.code = data.code || 'INVALID_OTP';
-        throw otpErr;
-      }
-    } catch (rpcErr: any) {
-      if (rpcErr?.code === 'INVALID_OTP' || rpcErr?.code === 'USER_NOT_FOUND') {
-        throw rpcErr;
-      }
-    }
-
-    const { data, error } = await supabase.auth.verifyOtp({
-      email: normalizedEmail,
-      token: cleanToken,
-      type: 'recovery',
+    const { data, error } = await anonClient.rpc('verify_password_reset_otp', {
+      p_email: normalizedEmail,
+      p_otp: cleanToken,
     });
     if (error) {
       throw error;
     }
-    return data;
+    if (data && data.ok === false) {
+      const otpErr: any = new Error(data.message || strings.auth.otpInvalidOrExpired);
+      otpErr.code = data.code || 'INVALID_OTP';
+      throw otpErr;
+    }
+    return { ok: true, user: { email: normalizedEmail } };
   },
 
   async updatePassword({
@@ -599,23 +624,20 @@ export const authService = {
     updatePasswordInFlight = true;
     try {
       if (email && otp) {
-        try {
-          const { data, error } = await supabase.rpc('verify_and_reset_password', {
-            p_email: normalizeEmail(email),
-            p_otp: otp.trim(),
-            p_new_password: password,
-          });
-          if (!error && data?.ok) {
-            return { ok: true };
-          }
-          if (data && data.ok === false) {
-            const err: any = new Error(data.message || 'Password update failed.');
-            err.code = data.code || 'UPDATE_FAILED';
-            throw err;
-          }
-        } catch (rpcErr: any) {
-          if (rpcErr?.code) throw rpcErr;
+        const { data, error } = await anonClient.rpc('verify_and_reset_password', {
+          p_email: normalizeEmail(email),
+          p_otp: otp.trim(),
+          p_new_password: password,
+        });
+        if (error) {
+          throw error;
         }
+        if (data && data.ok === false) {
+          const err: any = new Error(data.message || 'Password update failed.');
+          err.code = data.code || 'UPDATE_FAILED';
+          throw err;
+        }
+        return { ok: true };
       }
 
       const { data, error } = await supabase.auth.updateUser({
