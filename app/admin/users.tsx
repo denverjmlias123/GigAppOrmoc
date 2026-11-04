@@ -189,9 +189,17 @@ export default function AdminUsers() {
                     </View>
                     <View style={{ flex: 1.6 }}>
                       <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-                        {new Date(item.created_at).toLocaleDateString()} ·{' '}
+                        {item.created_at
+                          ? (() => {
+                              const d = new Date(item.created_at);
+                              return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                            })()
+                          : ''} ·{' '}
                         {item.last_sign_in_at
-                          ? new Date(item.last_sign_in_at).toLocaleDateString()
+                          ? (() => {
+                              const d = new Date(item.last_sign_in_at);
+                              return isNaN(d.getTime()) ? 'No sign in yet' : d.toLocaleDateString();
+                            })()
                           : 'No sign in yet'}
                       </Text>
                     </View>
@@ -211,9 +219,17 @@ export default function AdminUsers() {
                       {modeLabel} · {item.status} · {isSuperAdmin ? strings.admin.superAdmin : strings.admin.userRole}
                     </Text>
                     <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-                      {new Date(item.created_at).toLocaleDateString()} ·{' '}
+                      {item.created_at
+                        ? (() => {
+                            const d = new Date(item.created_at);
+                            return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                          })()
+                        : ''} ·{' '}
                       {item.last_sign_in_at
-                        ? new Date(item.last_sign_in_at).toLocaleDateString()
+                        ? (() => {
+                            const d = new Date(item.last_sign_in_at);
+                            return isNaN(d.getTime()) ? 'No sign in yet' : d.toLocaleDateString();
+                          })()
                         : 'No sign in yet'}
                     </Text>
                   </View>

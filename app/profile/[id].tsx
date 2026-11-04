@@ -691,18 +691,30 @@ export default function PublicProfileScreen() {
                         {rev.reviewer?.display_name || 'Anonymous User'}
                       </Text>
                       <Text style={[styles.reviewerRoleSubtitle, { color: theme.colors.muted }]}>
-                        {new Date(rev.created_at).toLocaleDateString()} • As {rev.role}
+                        {rev.created_at
+                          ? (() => {
+                              const d = new Date(rev.created_at);
+                              return isNaN(d.getTime()) ? '' : `${d.toLocaleDateString()} • `;
+                            })()
+                          : ''}As {rev.role}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.starsPill}>
-                    <Text style={[styles.starsGold, { color: theme.colors.warning }]}>
-                      {'★'.repeat(rev.rating)}
-                    </Text>
-                    <Text style={[styles.starsEmpty, { color: theme.colors.borderStrong }]}>
-                      {'☆'.repeat(5 - rev.rating)}
-                    </Text>
+                    {(() => {
+                      const safeStars = Math.max(0, Math.min(5, Math.round(Number(rev.rating) || 0)));
+                      return (
+                        <>
+                          <Text style={[styles.starsGold, { color: theme.colors.warning }]}>
+                            {'★'.repeat(safeStars)}
+                          </Text>
+                          <Text style={[styles.starsEmpty, { color: theme.colors.borderStrong }]}>
+                            {'☆'.repeat(5 - safeStars)}
+                          </Text>
+                        </>
+                      );
+                    })()}
                   </View>
                 </View>
 

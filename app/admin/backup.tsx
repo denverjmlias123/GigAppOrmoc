@@ -95,7 +95,7 @@ export default function AdminBackupScreen() {
     try {
       const snapshot = await adminService.getBackupSnapshot(item.id);
       const jsonStr = JSON.stringify(snapshot, null, 2);
-      const filename = `gigormoc-backup-${item.id.slice(0, 8)}.json`;
+      const filename = `gigormoc-backup-${(item.id || 'snapshot').slice(0, 8)}.json`;
 
       if (Platform.OS === 'web') {
         const anchor = document.createElement('a');
@@ -132,7 +132,7 @@ export default function AdminBackupScreen() {
             <View style={styles.badgeRow}>
               <Badge
                 status={item.status === 'completed' ? 'approved' : item.status === 'restored' ? 'active' : 'pending'}
-                label={item.status.toUpperCase()}
+                label={String(item.status || 'unknown').toUpperCase()}
               />
               <Badge
                 status={item.backup_type === 'scheduled' ? 'active' : 'draft'}
@@ -140,7 +140,10 @@ export default function AdminBackupScreen() {
               />
             </View>
             <Text style={[theme.type.bodyStrong, { color: theme.colors.text, marginTop: 4 }]}>
-              {new Date(item.created_at).toLocaleString()}
+              {item.created_at ? (() => {
+                const d = new Date(item.created_at);
+                return isNaN(d.getTime()) ? '' : d.toLocaleString();
+              })() : ''}
             </Text>
             <Text style={[theme.type.small, { color: theme.colors.muted }]}>
               Created by: {item.creator_email || 'System Scheduler'}
@@ -149,7 +152,7 @@ export default function AdminBackupScreen() {
 
           <View style={styles.countBadge}>
             <Text style={[styles.countNumber, { color: theme.colors.primary }]}>
-              {item.record_count.toLocaleString()}
+              {Number(item.record_count || 0).toLocaleString()}
             </Text>
             <Text style={[styles.countLabel, { color: theme.colors.muted }]}>Records</Text>
           </View>
@@ -161,7 +164,10 @@ export default function AdminBackupScreen() {
           </Text>
           {item.restored_at ? (
             <Text style={[theme.type.small, { color: theme.colors.primary }]}>
-              Restored: {new Date(item.restored_at).toLocaleString()}
+              Restored: {(() => {
+                const d = new Date(item.restored_at);
+                return isNaN(d.getTime()) ? '' : d.toLocaleString();
+              })()}
             </Text>
           ) : null}
         </View>

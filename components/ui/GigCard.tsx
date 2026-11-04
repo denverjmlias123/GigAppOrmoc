@@ -74,18 +74,27 @@ export const GigCard: React.FC<GigCardProps> = React.memo(function GigCard({
       ? formatPrice(gig.price_min)
       : `${formatPrice(gig.price_min)} – ${formatPrice(gig.price_max)}`;
 
-  const deadlineFormatted = new Date(gig.application_deadline).toLocaleDateString('en-PH', {
-    month: 'short',
-    day: 'numeric',
-  });
+  const deadlineDate = gig.application_deadline ? new Date(gig.application_deadline) : null;
+  const deadlineFormatted =
+    deadlineDate && !isNaN(deadlineDate.getTime())
+      ? deadlineDate.toLocaleDateString('en-PH', {
+          month: 'short',
+          day: 'numeric',
+        })
+      : '';
 
-  const meta = workTypeMeta[gig.work_type] || { label: gig.work_type, icon: 'briefcase-outline' as const };
+  const meta =
+    (gig.work_type && workTypeMeta[gig.work_type]) || {
+      label: gig.work_type || 'Gig',
+      icon: 'briefcase-outline' as const,
+    };
+  const normalizedStatus = String(gig.status || '').toLowerCase().trim();
   // Freelancers browse open gigs, so "Open" is noise for them; clients manage status.
-  const showStatus = theme.isClient || gig.status.toLowerCase() !== 'open';
+  const showStatus = theme.isClient || normalizedStatus !== 'open';
 
   // Compute badge colors: allow override (e.g. green for "open" in client dashboard)
   const defaultColors = (() => {
-    switch (gig.status.toLowerCase()) {
+    switch (normalizedStatus) {
       case 'open':
       case 'active':
       case 'in_progress':
@@ -110,9 +119,10 @@ export const GigCard: React.FC<GigCardProps> = React.memo(function GigCard({
     }
   })();
 
-  const badgeColors = gig.status.toLowerCase() === 'open' && statusBadgeOverride
-    ? statusBadgeOverride
-    : defaultColors;
+  const badgeColors =
+    normalizedStatus === 'open' && statusBadgeOverride
+      ? statusBadgeOverride
+      : defaultColors;
 
   return (
     <View

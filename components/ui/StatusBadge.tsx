@@ -96,7 +96,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           { color: text },
         ]}
       >
-        {displayLabel.toUpperCase()}
+        {String(displayLabel || '').toUpperCase()}
       </Text>
     </View>
   );

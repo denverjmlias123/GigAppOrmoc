@@ -365,7 +365,12 @@ export default function ActivityScreen() {
               <View style={[styles.cardFooter, { borderTopColor: theme.colors.border }]}>
                 <Text style={[styles.cardFooterText, { color: theme.colors.muted }]}>
                   Est. {app.estimated_days} day{app.estimated_days > 1 ? 's' : ''} • Applied{' '}
-                  {new Date(app.created_at).toLocaleDateString()}
+                  {app.created_at
+                    ? (() => {
+                        const d = new Date(app.created_at);
+                        return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                      })()
+                    : ''}
                 </Text>
               </View>
             </Card>
@@ -552,7 +557,13 @@ export default function ActivityScreen() {
 
               <View style={[styles.cardFooter, { borderTopColor: theme.colors.border }]}>
                 <Text style={[styles.cardFooterText, { color: theme.colors.muted }]}>
-                  Deadline: {new Date(agr.deadline).toLocaleDateString()}
+                  Deadline:{' '}
+                  {agr.deadline
+                    ? (() => {
+                        const d = new Date(agr.deadline);
+                        return isNaN(d.getTime()) ? 'Flexible' : d.toLocaleDateString();
+                      })()
+                    : 'Flexible'}
                 </Text>
                 <Text style={[styles.cardFooterLink, { color: theme.colors.primary }]}>
                   View Agreement ›

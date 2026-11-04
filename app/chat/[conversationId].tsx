@@ -369,10 +369,17 @@ export default function ChatScreen() {
                       { color: isMe ? theme.colors.primarySoft : theme.colors.muted },
                     ]}
                   >
-                    {new Date(item.created_at).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
+                    {item.created_at
+                      ? (() => {
+                          const d = new Date(item.created_at);
+                          return isNaN(d.getTime())
+                            ? ''
+                            : d.toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              });
+                        })()
+                      : ''}
                   </Text>
                 </View>
               </View>

@@ -166,7 +166,7 @@ export const GigCategoryPicker: React.FC<GigCategoryPickerProps> = ({
             <Chip
               label={`+ ${aiProposedCategory}`}
               icon="add-circle-outline"
-              selected={customCategoryName.toLowerCase() === aiProposedCategory.toLowerCase()}
+              selected={(customCategoryName || '').toLowerCase() === (aiProposedCategory || '').toLowerCase()}
               onPress={() => onSelectCustomCategory(aiProposedCategory)}
             />
           </View>

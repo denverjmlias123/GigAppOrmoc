@@ -92,11 +92,17 @@ export const ProjectMailInbox: React.FC = () => {
         p_challenge_id: effectiveChallengeId || null,
       });
 
+      const isStillValid = (m: any) => {
+        if (!m || !m.expires_at) return false;
+        const exp = new Date(m.expires_at).getTime();
+        return !isNaN(exp) && exp > Date.now();
+      };
+
       let valid: InboxMessage[] = [];
       if (Array.isArray(res)) {
-        valid = res.filter((m) => new Date(m.expires_at).getTime() > Date.now());
+        valid = res.filter(isStillValid);
       } else if (res && Array.isArray((res as any).data)) {
-        valid = (res as any).data.filter((m: any) => new Date(m.expires_at).getTime() > Date.now());
+        valid = (res as any).data.filter(isStillValid);
       }
 
       // Fallback direct query if RPC returned empty
@@ -107,7 +113,7 @@ export const ProjectMailInbox: React.FC = () => {
           .eq('recipient_email', effectiveEmail)
           .order('created_at', { ascending: false });
         if (Array.isArray(directMsgs)) {
-          valid = directMsgs.filter((m: any) => new Date(m.expires_at).getTime() > Date.now());
+          valid = directMsgs.filter(isStillValid);
         }
       }
 
@@ -247,7 +253,8 @@ export const ProjectMailInbox: React.FC = () => {
             ) : (
               <ScrollView style={styles.messageList} nestedScrollEnabled>
                 {messages.map((msg) => {
-                  const expiresAt = new Date(msg.expires_at).getTime();
+                  const expTime = msg.expires_at ? new Date(msg.expires_at).getTime() : 0;
+                  const expiresAt = isNaN(expTime) ? 0 : expTime;
                   const now = Date.now();
                   const remainingSecs = Math.max(0, Math.floor((expiresAt - now) / 1000));
                   const mins = Math.floor(remainingSecs / 60);

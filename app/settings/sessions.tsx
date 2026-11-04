@@ -144,7 +144,7 @@ export default function SessionsScreen() {
                       : strings.auth.sessionsLastActive(formatLastActive(item.last_seen_at))}
                   </Text>
                   <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-                    {item.platform.toUpperCase()}
+                    {String(item.platform || '').toUpperCase()}
                   </Text>
                 </Card>
               ))

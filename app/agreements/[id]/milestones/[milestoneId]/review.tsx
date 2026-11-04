@@ -249,7 +249,12 @@ export default function ReviewMilestoneScreen() {
                       Submission #{sub.submission_number}
                     </Text>
                     <Text style={[styles.dateText, { color: theme.colors.muted }]}>
-                      {new Date(sub.created_at).toLocaleDateString()}
+                      {sub.created_at
+                        ? (() => {
+                            const d = new Date(sub.created_at);
+                            return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                          })()
+                        : ''}
                     </Text>
                   </View>
 

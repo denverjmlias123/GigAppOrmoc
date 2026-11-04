@@ -47,7 +47,7 @@ export default function DisputePaymentScreen() {
         const found = allPayments.find((p) => p.id === paymentId);
         if (found) {
           setDisplayAmount(found.amount);
-          setDisplayMethod(found.payment_method.toUpperCase());
+          setDisplayMethod(String(found.payment_method || 'direct').toUpperCase());
         }
       })
       .catch(() => {});

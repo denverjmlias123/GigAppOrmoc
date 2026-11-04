@@ -113,18 +113,24 @@ export default function PostGigScreen() {
         // Populate application & completion days from existing deadlines
         const nowMs = Date.now();
         if (g.application_deadline) {
-          const diffApp = Math.max(
-            1,
-            Math.ceil((new Date(g.application_deadline).getTime() - nowMs) / (24 * 60 * 60 * 1000))
-          );
-          setAppDays(String(diffApp));
+          const appTime = new Date(g.application_deadline).getTime();
+          if (!isNaN(appTime)) {
+            const diffApp = Math.max(
+              1,
+              Math.ceil((appTime - nowMs) / (24 * 60 * 60 * 1000))
+            );
+            setAppDays(String(diffApp));
+          }
         }
         if (g.deadline) {
-          const diffComp = Math.max(
-            1,
-            Math.ceil((new Date(g.deadline).getTime() - nowMs) / (24 * 60 * 60 * 1000))
-          );
-          setCompletionDays(String(diffComp));
+          const deadlineTime = new Date(g.deadline).getTime();
+          if (!isNaN(deadlineTime)) {
+            const diffComp = Math.max(
+              1,
+              Math.ceil((deadlineTime - nowMs) / (24 * 60 * 60 * 1000))
+            );
+            setCompletionDays(String(diffComp));
+          }
         }
       })
       .catch(() => {});

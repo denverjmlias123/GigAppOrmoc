@@ -131,14 +131,20 @@ export const AgreementReviewsCard: React.FC<AgreementReviewsCardProps> = ({
                       </Text>
                     </View>
                     <Text style={[styles.reviewStars, { color: theme.colors.spark }]}>
-                      {'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}
+                      {(() => {
+                        const safeRating = Math.max(0, Math.min(5, Math.round(Number(r.rating) || 0)));
+                        return `${'★'.repeat(safeRating)}${'☆'.repeat(5 - safeRating)}`;
+                      })()}
                     </Text>
                   </View>
                   <Text style={[styles.reviewComment, { color: theme.colors.text }]}>
                     {r.comment}
                   </Text>
                   <Text style={[styles.reviewDate, { color: theme.colors.muted }]}>
-                    {new Date(r.created_at).toLocaleDateString()}
+                    {r.created_at ? (() => {
+                      const d = new Date(r.created_at);
+                      return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                    })() : ''}
                   </Text>
                 </Card>
               ))}

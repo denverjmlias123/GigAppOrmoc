@@ -170,7 +170,13 @@ export const FreelancerApplicationReport: React.FC = () => {
                     {app.gig?.title || app.gig_title_snapshot || 'Gig Opportunity'}
                   </Text>
                   <Text style={[styles.dateText, { color: theme.colors.muted }]}>
-                    Submitted {new Date(app.created_at).toLocaleDateString()}
+                    Submitted{' '}
+                    {app.created_at
+                      ? (() => {
+                          const d = new Date(app.created_at);
+                          return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                        })()
+                      : ''}
                   </Text>
                 </View>
                 <Badge status={app.status} />

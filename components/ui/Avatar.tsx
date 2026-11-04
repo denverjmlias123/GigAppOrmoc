@@ -33,12 +33,15 @@ export const Avatar: React.FC<AvatarProps> = React.memo(function Avatar({
     setImgError(false);
   }, [resolvedUri]);
 
-  const initials = (name || '?')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p.charAt(0).toUpperCase())
-    .join('');
+  const trimmed = (name || '').trim();
+  const initials =
+    (trimmed
+      ? trimmed
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((p) => p.charAt(0).toUpperCase())
+          .join('')
+      : '') || '?';
 
   const content = (
     <View style={{ width: size, height: size, position: 'relative' }}>

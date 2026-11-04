@@ -19,17 +19,25 @@ export function GigDetailInfo({ gig, theme, onClientPress }: GigDetailInfoProps)
       ? formatPrice(gig.price_min)
       : `${formatPrice(gig.price_min)} - ${formatPrice(gig.price_max)}`;
 
-  const appDeadline = new Date(gig.application_deadline).toLocaleDateString('en-PH', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const appDate = gig.application_deadline ? new Date(gig.application_deadline) : null;
+  const appDeadline =
+    appDate && !isNaN(appDate.getTime())
+      ? appDate.toLocaleDateString('en-PH', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : 'No deadline';
 
-  const completionDeadline = new Date(gig.deadline).toLocaleDateString('en-PH', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const compDate = gig.deadline ? new Date(gig.deadline) : null;
+  const completionDeadline =
+    compDate && !isNaN(compDate.getTime())
+      ? compDate.toLocaleDateString('en-PH', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : 'Flexible';
 
   return (
     <>

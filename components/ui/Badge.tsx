@@ -31,13 +31,14 @@ interface BadgeProps {
 export const Badge: React.FC<BadgeProps> = React.memo(function Badge({ status, label, bgColor, textColor }) {
   const theme = useAppTheme();
   const c = theme.colors;
+  const norm = String(status || '').toLowerCase().trim();
 
   const getStatusColor = () => {
     // Allow caller override
     if (bgColor && textColor) {
       return { bg: bgColor, text: textColor };
     }
-    switch (status.toLowerCase()) {
+    switch (norm) {
       case 'open':
       case 'active':
       case 'in_progress':
@@ -64,7 +65,8 @@ export const Badge: React.FC<BadgeProps> = React.memo(function Badge({ status, l
 
   const getStatusLabel = () => {
     if (label) return label;
-    switch (status.toLowerCase()) {
+    if (!norm) return 'Unknown';
+    switch (norm) {
       case 'in_progress':
         return 'In progress';
       case 'revision_requested':
@@ -72,7 +74,7 @@ export const Badge: React.FC<BadgeProps> = React.memo(function Badge({ status, l
       case 'face_to_face':
         return 'Face-to-face';
       default:
-        return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
+        return norm.charAt(0).toUpperCase() + norm.slice(1).replace(/_/g, ' ');
     }
   };
 

@@ -196,10 +196,11 @@ export default function HomeScreen() {
   const matchedGigs = availableGigs.filter((gig) => {
     if (!userSkills.length) return false;
     return userSkills.some((skill) => {
-      const sName = skill.name.toLowerCase();
+      const sName = String(skill?.name || '').toLowerCase();
+      if (!sName) return false;
       return (
         (gig.category_name && gig.category_name.toLowerCase().includes(sName)) ||
-        gig.title.toLowerCase().includes(sName)
+        String(gig.title || '').toLowerCase().includes(sName)
       );
     });
   });
@@ -298,7 +299,13 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <Text style={[styles.contractDeadline, { color: theme.colors.muted }]}>
-                  Due: {new Date(agr.deadline).toLocaleDateString()}
+                  Due:{' '}
+                  {agr.deadline
+                    ? (() => {
+                        const d = new Date(agr.deadline);
+                        return isNaN(d.getTime()) ? 'Flexible' : d.toLocaleDateString();
+                      })()
+                    : 'Flexible'}
                 </Text>
               </View>
 
@@ -1081,7 +1088,13 @@ export default function HomeScreen() {
                             Proposed: {formatPrice(app.proposed_price)}
                           </Text>
                           <Text style={[styles.proposalDate, { color: theme.colors.muted }]}>
-                            Submitted: {new Date(app.created_at).toLocaleDateString()}
+                            Submitted:{' '}
+                            {app.created_at
+                              ? (() => {
+                                  const d = new Date(app.created_at);
+                                  return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                                })()
+                              : ''}
                           </Text>
                         </View>
                       </Card>
@@ -1115,11 +1128,16 @@ export default function HomeScreen() {
                               {rev.reviewer?.display_name || 'Client'}
                             </Text>
                             <Text style={[styles.testimonialDate, { color: theme.colors.muted }]}>
-                              {new Date(rev.created_at).toLocaleDateString()}
+                              {rev.created_at
+                                ? (() => {
+                                    const d = new Date(rev.created_at);
+                                    return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                                  })()
+                                : ''}
                             </Text>
                           </View>
                           <Text style={[styles.testimonialStars, { color: theme.colors.warning }]}>
-                            {'★'.repeat(rev.rating)}
+                            {'★'.repeat(Math.max(0, Math.min(5, Math.round(Number(rev.rating) || 0))))}
                           </Text>
                         </View>
                         {rev.comment ? (

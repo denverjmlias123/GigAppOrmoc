@@ -121,9 +121,14 @@ export const PaymentsEvidenceCard: React.FC<PaymentsEvidenceCardProps> = ({
                 </View>
 
                 <Text style={[styles.paymentMethod, { color: c.muted }]}>
-                  Channel: {p.payment_method.toUpperCase()}
+                  Channel: {String(p.payment_method || 'direct').toUpperCase()}
                   {p.reference_number ? ` • Ref: ${p.reference_number}` : ''}
-                  {p.created_at ? ` • ${new Date(p.created_at).toLocaleDateString()}` : ''}
+                  {p.created_at
+                    ? (() => {
+                        const d = new Date(p.created_at);
+                        return isNaN(d.getTime()) ? '' : ` • ${d.toLocaleDateString()}`;
+                      })()
+                    : ''}
                 </Text>
 
                 {p.receipt_path ? (
@@ -158,7 +163,7 @@ export const PaymentsEvidenceCard: React.FC<PaymentsEvidenceCardProps> = ({
                     <AlertBox
                       tone="info"
                       title="Payment Verification Needed"
-                      message={`Client reported sending ${formatPrice(p.amount)} via ${p.payment_method.toUpperCase()}${p.reference_number ? ` (Ref #${p.reference_number})` : ''}. Please check your ${p.payment_method.toUpperCase()} account to verify the funds before confirming.`}
+                      message={`Client reported sending ${formatPrice(p.amount)} via ${String(p.payment_method || 'direct').toUpperCase()}${p.reference_number ? ` (Ref #${p.reference_number})` : ''}. Please check your ${String(p.payment_method || 'payment').toUpperCase()} account to verify the funds before confirming.`}
                       style={{ marginBottom: 10 }}
                     />
                     <View style={styles.paymentActionButtons}>

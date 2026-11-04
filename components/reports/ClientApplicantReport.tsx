@@ -237,7 +237,12 @@ export const ClientApplicantReport: React.FC<Props> = ({ clientId }) => {
                   <View style={styles.metaItem}>
                     <Text style={[styles.metaLabel, { color: theme.colors.muted }]}>Applied Date</Text>
                     <Text style={[styles.metaVal, { color: theme.colors.text }]}>
-                      {new Date(app.created_at).toLocaleDateString()}
+                      {app.created_at
+                        ? (() => {
+                            const d = new Date(app.created_at);
+                            return isNaN(d.getTime()) ? '' : d.toLocaleDateString();
+                          })()
+                        : ''}
                     </Text>
                   </View>
                 </View>

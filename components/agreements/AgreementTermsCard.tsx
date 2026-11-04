@@ -92,19 +92,26 @@ export const AgreementTermsCard: React.FC<AgreementTermsCardProps> = ({
               Completion Deadline:
             </Text>
             <Text style={[styles.value, { color: theme.colors.text }]}>
-              {new Date(agreement.deadline).toLocaleDateString(undefined, {
-                weekday: 'short',
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
+              {agreement.deadline
+                ? (() => {
+                    const d = new Date(agreement.deadline);
+                    return isNaN(d.getTime())
+                      ? 'No deadline'
+                      : d.toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        });
+                  })()
+                : 'No deadline'}
             </Text>
           </View>
 
           <View style={styles.detailRow}>
             <Text style={[styles.label, { color: theme.colors.muted }]}>Agreement ID:</Text>
             <Text style={[styles.monoValue, { color: theme.colors.muted }]}>
-              {agreement.id.slice(0, 8)}...
+              {agreement.id ? agreement.id.slice(0, 8) : ''}...
             </Text>
           </View>
         </Card>

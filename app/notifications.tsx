@@ -413,12 +413,19 @@ const NotificationCard = React.memo(function NotificationCard({
         </View>
         <Text style={[styles.itemBody, { color: theme.colors.muted }]}>{item.body}</Text>
         <Text style={[styles.itemDate, { color: theme.colors.muted }]}>
-          {new Date(item.created_at).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {item.created_at
+            ? (() => {
+                const d = new Date(item.created_at);
+                return isNaN(d.getTime())
+                  ? ''
+                  : d.toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    });
+              })()
+            : ''}
         </Text>
       </View>
     </Card>

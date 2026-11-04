@@ -68,13 +68,13 @@ export interface AuditEvent {
   actor_id: string | null;
   actor_email: string | null;
   actor_role: string | null;
-  action: string;
-  entity_type: string;
+  action: string | null;
+  entity_type: string | null;
   entity_id: string | null;
-  status: 'success' | 'failure';
+  status: 'success' | 'failure' | string | null;
   ip: string | null;
   device: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
 }
 
 interface AuditPage {

@@ -194,7 +194,10 @@ export default function ApplyGigScreen() {
                       Target Date:
                     </Text>
                     <Text style={[styles.gigSummaryChipValue, { color: theme.colors.text }]}>
-                      {new Date(gig.deadline).toLocaleDateString()}
+                      {(() => {
+                        const d = new Date(gig.deadline);
+                        return isNaN(d.getTime()) ? 'Flexible' : d.toLocaleDateString();
+                      })()}
                     </Text>
                   </View>
                 )}

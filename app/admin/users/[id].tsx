@@ -136,8 +136,20 @@ export default function AdminUserDetail() {
           <Text style={[theme.type.body, { color: theme.colors.text }]}>{detail.email}</Text>
           <Text style={[theme.type.small, { color: theme.colors.muted }]}>{id}</Text>
           <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-            Created {new Date(detail.created_at).toLocaleString()} · Last sign in{' '}
-            {detail.last_sign_in_at ? new Date(detail.last_sign_in_at).toLocaleString() : 'Never'}
+            Created{' '}
+            {detail.created_at
+              ? (() => {
+                  const d = new Date(detail.created_at);
+                  return isNaN(d.getTime()) ? '' : d.toLocaleString();
+                })()
+              : ''}{' '}
+            · Last sign in{' '}
+            {detail.last_sign_in_at
+              ? (() => {
+                  const d = new Date(detail.last_sign_in_at);
+                  return isNaN(d.getTime()) ? 'Never' : d.toLocaleString();
+                })()
+              : 'Never'}
           </Text>
           <Text style={[theme.type.small, { color: theme.colors.muted }]}>
             {detail.admin_role === 'super_admin' ? 'Platform Admin (Staff)' : profile.active_mode === 'hire' ? 'Hire Someone' : profile.active_mode === 'find_work' ? 'Find Work' : strings.admin.unselected} · {profile.status}
@@ -276,8 +288,14 @@ export default function AdminUserDetail() {
                   </Text>
                   <Text style={[theme.type.small, { color: theme.colors.muted }]}>
                     {session.ended_at
-                      ? `Ended ${new Date(session.ended_at).toLocaleString()}`
-                      : `Active · ${new Date(session.last_seen_at).toLocaleString()}`}
+                      ? `Ended ${(() => {
+                          const d = new Date(session.ended_at);
+                          return isNaN(d.getTime()) ? '' : d.toLocaleString();
+                        })()}`
+                      : `Active · ${(() => {
+                          const d = new Date(session.last_seen_at);
+                          return isNaN(d.getTime()) ? '' : d.toLocaleString();
+                        })()}`}
                   </Text>
                 </Card>
               ))}

@@ -39,6 +39,7 @@ export interface PartnerConversationGroup {
 function formatMessageTime(dateStr: string | null | undefined): string {
   if (!dateStr) return '';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -114,24 +115,34 @@ export default function MessagesScreen() {
           existing.is_unread = true;
           existing.unread_count += 1;
         }
-        const currentTime = new Date(c.last_message_created_at || c.updated_at).getTime();
-        const latestTime = new Date(
+        const parseTime = (dateStr?: string | null) => {
+          if (!dateStr) return 0;
+          const t = new Date(dateStr).getTime();
+          return isNaN(t) ? 0 : t;
+        };
+        const currentTime = parseTime(c.last_message_created_at || c.updated_at);
+        const latestTime = parseTime(
           existing.latest_thread.last_message_created_at || existing.latest_thread.updated_at
-        ).getTime();
+        );
         if (currentTime > latestTime) {
           existing.latest_thread = c;
         }
       }
     }
 
+    const parseTime = (dateStr?: string | null) => {
+      if (!dateStr) return 0;
+      const t = new Date(dateStr).getTime();
+      return isNaN(t) ? 0 : t;
+    };
     const list = Array.from(map.values());
     list.sort((a, b) => {
-      const timeA = new Date(
+      const timeA = parseTime(
         a.latest_thread.last_message_created_at || a.latest_thread.updated_at
-      ).getTime();
-      const timeB = new Date(
+      );
+      const timeB = parseTime(
         b.latest_thread.last_message_created_at || b.latest_thread.updated_at
-      ).getTime();
+      );
       return timeB - timeA;
     });
 
@@ -147,12 +158,12 @@ export default function MessagesScreen() {
     if (!searchQuery.trim()) return base;
     const q = searchQuery.toLowerCase().trim();
     return base.filter((g) => {
-      const matchesName = g.partner_name.toLowerCase().includes(q);
+      const matchesName = String(g.partner_name || '').toLowerCase().includes(q);
       const matchesMsg = g.threads.some((t) =>
         t.last_message_content?.toLowerCase().includes(q)
       );
       const matchesGig = g.threads.some((t) =>
-        t.gig_title.toLowerCase().includes(q)
+        String(t.gig_title || '').toLowerCase().includes(q)
       );
       return matchesName || matchesMsg || matchesGig;
     });

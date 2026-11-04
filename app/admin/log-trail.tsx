@@ -31,6 +31,12 @@ function csvCell(value: unknown): string {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
+function formatLogDate(dateStr?: string | null): string {
+  if (!dateStr) return strings.admin.logNoValue;
+  const d = new Date(dateStr);
+  return isNaN(d.getTime()) ? strings.admin.logNoValue : d.toLocaleString('en-PH');
+}
+
 function makeCsv(rows: AuditEvent[]): string {
   const header = CSV_COLUMNS.map(([, title]) => csvCell(title)).join(',');
   const body = rows.map((row) => CSV_COLUMNS.map(([key]) => csvCell(row[key])).join(','));
@@ -235,58 +241,63 @@ export default function AdminLogTrailScreen() {
         </Card>
       ) : null}
 
-      {!loading && !error && rows.map((item) => (
-        <Card key={item.id} tone="raised" padding="md">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${strings.admin.logEvent}: ${item.action}`}
-            accessibilityState={{ expanded: expandedId === item.id }}
-            onPress={() => setExpandedId((current) => current === item.id ? null : item.id)}
-          >
-            <View style={styles.eventHeader}>
-              <Text style={[theme.type.bodyStrong, { color: theme.colors.text }]}>
-                {item.action.replaceAll('_', ' ')}
+      {!loading && !error && rows.map((item, index) => {
+        if (!item) return null;
+        const actionDisplay = (item.action || strings.admin.logNoValue).replace(/_/g, ' ');
+        const itemKey = item.id || `log-${index}`;
+        return (
+          <Card key={itemKey} tone="raised" padding="md">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${strings.admin.logEvent}: ${actionDisplay}`}
+              accessibilityState={{ expanded: expandedId === item.id }}
+              onPress={() => setExpandedId((current) => (current === item.id ? null : item.id))}
+            >
+              <View style={styles.eventHeader}>
+                <Text style={[theme.type.bodyStrong, { color: theme.colors.text }]}>
+                  {actionDisplay}
+                </Text>
+                <Text
+                  style={[
+                    theme.type.small,
+                    {
+                      color: item.status === 'failure' ? theme.colors.dangerText : theme.colors.primary,
+                      fontWeight: '700',
+                    },
+                  ]}
+                >
+                  {item.status === 'failure' ? strings.admin.logFailureStatus : strings.admin.logSuccessStatus}
+                </Text>
+              </View>
+              <Text style={[theme.type.small, { color: theme.colors.muted }]}>
+                {item.actor_email || item.actor_id || strings.admin.logNoValue}: {item.entity_type || strings.admin.logNoValue}
               </Text>
-              <Text
-                style={[
-                  theme.type.small,
-                  {
-                    color: item.status === 'failure' ? theme.colors.dangerText : theme.colors.primary,
-                    fontWeight: '700',
-                  },
-                ]}
-              >
-                {item.status === 'failure' ? strings.admin.logFailureStatus : strings.admin.logSuccessStatus}
+              <Text style={[theme.type.small, { color: theme.colors.muted }]}>
+                {formatLogDate(item.created_at)}
               </Text>
-            </View>
-            <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-              {item.actor_email || item.actor_id || strings.admin.logNoValue}: {item.entity_type}
-            </Text>
-            <Text style={[theme.type.small, { color: theme.colors.muted }]}>
-              {new Date(item.created_at).toLocaleString('en-PH')}
-            </Text>
-          </Pressable>
-          {expandedId === item.id ? (
-            <View style={[styles.details, { borderTopColor: theme.colors.border }]}>
-              <Text style={[theme.type.small, { color: theme.colors.text }]}>
-                {strings.admin.logActor}: {item.actor_email || item.actor_id || strings.admin.logNoValue}
-              </Text>
-              <Text style={[theme.type.small, { color: theme.colors.text }]}>
-                {strings.admin.logEntity}: {item.entity_type} · {item.entity_id || strings.admin.logNoValue}
-              </Text>
-              <Text style={[theme.type.small, { color: theme.colors.text }]}>
-                {strings.admin.logIp}: {item.ip || strings.admin.logNoValue}
-              </Text>
-              <Text style={[theme.type.small, { color: theme.colors.text }]}>
-                {strings.admin.logDevice}: {item.device || strings.admin.logNoValue}
-              </Text>
-              <Text selectable style={[theme.type.small, { color: theme.colors.text }]}>
-                {strings.admin.logMetadata}: {JSON.stringify(item.metadata || {})}
-              </Text>
-            </View>
-          ) : null}
-        </Card>
-      ))}
+            </Pressable>
+            {expandedId === item.id ? (
+              <View style={[styles.details, { borderTopColor: theme.colors.border }]}>
+                <Text style={[theme.type.small, { color: theme.colors.text }]}>
+                  {strings.admin.logActor}: {item.actor_email || item.actor_id || strings.admin.logNoValue}
+                </Text>
+                <Text style={[theme.type.small, { color: theme.colors.text }]}>
+                  {strings.admin.logEntity}: {item.entity_type || strings.admin.logNoValue} · {item.entity_id || strings.admin.logNoValue}
+                </Text>
+                <Text style={[theme.type.small, { color: theme.colors.text }]}>
+                  {strings.admin.logIp}: {item.ip || strings.admin.logNoValue}
+                </Text>
+                <Text style={[theme.type.small, { color: theme.colors.text }]}>
+                  {strings.admin.logDevice}: {item.device || strings.admin.logNoValue}
+                </Text>
+                <Text selectable style={[theme.type.small, { color: theme.colors.text }]}>
+                  {strings.admin.logMetadata}: {JSON.stringify(item.metadata || {})}
+                </Text>
+              </View>
+            ) : null}
+          </Card>
+        );
+      })}
 
       {!loading && !error && total > 0 ? (
         <View style={styles.pagination}>

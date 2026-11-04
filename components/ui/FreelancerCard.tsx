@@ -67,10 +67,8 @@ export const FreelancerCard: React.FC<FreelancerCardProps> = React.memo(function
 }) {
   const theme = useAppTheme();
 
-  const ratingText =
-    freelancer.freelancer_rating_avg > 0
-      ? freelancer.freelancer_rating_avg.toFixed(1)
-      : 'New';
+  const ratingNum = Number(freelancer.freelancer_rating_avg || 0);
+  const ratingText = ratingNum > 0 ? ratingNum.toFixed(1) : 'New';
 
   const expLabel = formatExperience(freelancer.experience_years);
   const avail = formatAvailability(freelancer.availability);

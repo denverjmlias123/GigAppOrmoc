@@ -146,7 +146,7 @@ export default function NewReportScreen() {
           <Card tone="raised" padding="md" style={styles.cardGap}>
             <Text style={[styles.label, { color: theme.colors.muted }]}>Reporting Target</Text>
             <Text style={[styles.title, { color: theme.colors.text }]}>
-              {targetTitle || `${targetType?.toUpperCase()} (${targetId?.slice(0, 8)})`}
+              {targetTitle || `${String(targetType || 'TARGET').toUpperCase()} (${targetId ? targetId.slice(0, 8) : ''})`}
             </Text>
           </Card>
 
